@@ -85,7 +85,7 @@ uint32_t readData;
 		printf("requestSonar:: Couldn't send sonar packet: errno %d\n",err);
 		return -1;
 	}	
-	::sleep(2); //wait some time
+	::sleep(1); //wait some time
 	if ((rec = ::read( dev_handle,&rPkt, 2 )) != 2  ) {
 		err = errno ;
                 printf("requestSonar:: Couldn't get sonar packet: errno %d\n",err);
