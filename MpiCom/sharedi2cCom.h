@@ -10,12 +10,12 @@
          * sonar pkt struct
          */
 	typedef struct {
-                uint8_t header;
-                uint8_t sensor1;
-                uint8_t sensor2;
-                uint8_t sensor3;
-                uint8_t sensor4;
-	} SonarPkt;
+                uint8_t header; //sensor number provided by master
+                uint8_t payload; // distance recorded by requested sonar
+                //uint8_t sensor2;
+                //uint8_t sensor3;
+                //uint8_t sensor4;
+	} ReqPkt;
 
         /** 
          * sonar Arduino Address
@@ -25,5 +25,5 @@
         /** 
          * sonar Arduino Address
          */
-         int ppmArduinoAdd;
+         int ppmArduinoAdd =0x08;
 #endif //SHARED_I2C_COM 

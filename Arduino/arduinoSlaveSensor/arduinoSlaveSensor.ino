@@ -1,16 +1,18 @@
 #include <Wire.h>
+#include <sharedi2cCom.h>
 
-#define SLAVE_ADDRESS 0x04
-#define trigPin 13
-#define echoPin 12
+//#define SLAVE_ADDRESS 0x04
+#define trigPin1 13 //trig for sensor 1
+#define echoPin1 12 //echo for sensor 1
 #define led 11
 #define led2 10
 
 int number = 0; // num pkt send back since restart...
 int state = 0;
 int masterCmd =0;
-long distance; // distance recorded by sensor
+long distance1; // distance recorded by sensor1
 
+/*
 //testing struct packet
 typedef struct {
                 uint8_t header;
@@ -19,25 +21,26 @@ typedef struct {
                 uint8_t sensor3;
                 uint8_t sensor4;
 } SonarPkt;
-SonarPkt pkt;
+*/
+ReqPkt pkt;
 int temp;
 
 void setup() {
     pinMode(13, OUTPUT);
     Serial.begin(9600);         // start serial for output
     // initialize i2c as slave
-    Wire.begin(SLAVE_ADDRESS);
+    Wire.begin(sonarArduinoAdd);
 
     // define callbacks for i2c communication
     Wire.onReceive(receiveData);
     Wire.onRequest(sendData);
 
     //Sonar pin directionality
-    pinMode(trigPin, OUTPUT);
-    pinMode(echoPin, INPUT);
+    pinMode(trigPin1, OUTPUT);
+    pinMode(echoPin1, INPUT);
 
 //test
-distance =0;
+distance1 =0;
 
     Serial.println("Ready!");
 }
@@ -46,15 +49,15 @@ void loop() {
    // delay(100);
        
      long duration;
-  digitalWrite(trigPin, LOW);  // Added this line
+  digitalWrite(trigPin1, LOW);  // Added this line
   delayMicroseconds(2); // Added this line
-  digitalWrite(trigPin, HIGH);
+  digitalWrite(trigPin1, HIGH);
 //  delayMicroseconds(1000); - Removed this line
   delayMicroseconds(10); // Added this line
-  digitalWrite(trigPin, LOW);
-  duration = pulseIn(echoPin, HIGH);
-  distance = (duration/2) / 29.1;
-  if (distance < 4) {  // This is where the LED On/Off happens
+  digitalWrite(trigPin1, LOW);
+  duration = pulseIn(echoPin1, HIGH);
+  distance1 = (duration/2) / 29.1;
+  if (distance1 < 4) {  // This is where the LED On/Off happens
     digitalWrite(led,HIGH); // When the Red condition is met, the Green LED should turn off
   digitalWrite(led2,LOW);
 }
@@ -62,14 +65,14 @@ void loop() {
     digitalWrite(led,LOW);
     digitalWrite(led2,HIGH);
   }
-  if (distance >= 200 || distance <= 0){
+  if (distance1 >= 200 || distance1 <= 0){
     Serial.println("Out of range");
   }
   else {
-    Serial.print(distance);
+    Serial.print(distance1);
     Serial.println(" cm");
   }
-  delay(500);
+  delay(20); /// sensor reads 3.06m in 18ms
 
 }
 
@@ -95,12 +98,12 @@ void receiveData(int byteCount){
          }
          
          /// test for dummydata
-         if (number = 0xAA){
+         if (masterCmd = 0xAA){
            //Serial.println("Got dummy data from Pi"); 
-           Serial.println(pkt.sensor1);
-           Serial.println(pkt.sensor2);
-           Serial.println(pkt.sensor3);
-           Serial.println(pkt.sensor4);
+           Serial.println(pkt.payload);
+           //Serial.println(pkt.sensor2);
+           //Serial.println(pkt.sensor3);
+           //Serial.println(pkt.sensor4);
          }
      }
 }
@@ -123,12 +126,14 @@ void sendData(){
   pkt.sensor3 = (uint8_t)number +2;
   pkt.sensor4 = (uint8_t)number +3;
   */
-  pkt.header = number++;
-  pkt.sensor1 = (uint8_t) distance;
-  pkt.sensor2 = (uint8_t) distance +1;
-  pkt.sensor3 = (uint8_t) distance +2;
-  pkt.sensor4 = (uint8_t) distance +3;
   
-  Wire.write((uint8_t *)&pkt,sizeof(SonarPkt));
+  //send sor
+  pkt.header = number++;
+  pkt.payload = (uint8_t) distance1;
+  //pkt.sensor2 = (uint8_t) distance +1;
+  //pkt.sensor3 = (uint8_t) distance +2;
+  //pkt.sensor4 = (uint8_t) distance +3;
+  
+  Wire.write((uint8_t *)&pkt,sizeof(ReqPkt));
 }
 

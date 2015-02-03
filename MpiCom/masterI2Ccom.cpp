@@ -65,7 +65,7 @@ int MasterI2Ccom::closei2cBus() {
  */
 int MasterI2Ccom::requestSonar(){
 	uint8_t mbuff[5]; //sizeof packet
-SonarPkt rPkt;
+	ReqPkt rPkt;
 	int err,rec;
 	uint8_t dumData = 0xAA;
 
