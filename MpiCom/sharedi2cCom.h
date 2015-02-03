@@ -12,9 +12,6 @@
 	typedef struct {
                 uint8_t header; //sensor number provided by master
                 uint8_t payload; // distance recorded by requested sonar
-                //uint8_t sensor2;
-                //uint8_t sensor3;
-                //uint8_t sensor4;
 	} ReqPkt;
 
         /** 
