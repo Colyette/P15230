@@ -19,6 +19,24 @@
                 uint8_t payload; //For extra params, or requested data
 	} ReqPkt;
 
+	/**
+         * SensorReqPkt
+    	 * 
+         * \brief Sensor request packet struct, header is the cmd from the Pi
+         * (so far cmd doesn't matter, always sends all sensor information). 
+	 * If sensor reading isn't ready, the last calculated on a sent. 
+         */
+        typedef struct {
+                uint16_t header; //Command to the microcontroller
+                uint16_t sonar1; 
+		uint16_t sonar2;
+		uint16_t sonar3;
+		uint16_t sonar4;
+		uint16_t heading; //heading calculated by float on Compass
+		uint16_t altitude; //altitude is calculated as float on Barometer
+        } SonarReqPkt;
+	
+
         /** 
          * \brief sonar Arduino Address
          */

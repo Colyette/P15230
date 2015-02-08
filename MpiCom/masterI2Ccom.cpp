@@ -65,7 +65,8 @@ int MasterI2Ccom::closei2cBus() {
  */
 int MasterI2Ccom::requestSonar(){
 	uint8_t mbuff[5]; //sizeof packet
-	ReqPkt rPkt;
+//	ReqPkt rPkt;
+	SonarReqPkt rPkt;
 	int err,rec;
 	uint8_t dumData = 0xAA;
 
@@ -85,16 +86,19 @@ uint32_t readData;
 		printf("requestSonar:: Couldn't send sonar packet: errno %d\n",err);
 		return -1;
 	}	
-	::sleep(1); //wait some time
-	if ((rec = ::read( dev_handle,&rPkt, 2 )) != 2  ) {
+	::usleep(100000); //wait some time ::usleep(50000)
+printf("size of SonarReqPkt: %d\n",sizeof(SonarReqPkt));
+	if ((rec = ::read( dev_handle,&rPkt, sizeof(SonarReqPkt) )) != sizeof(SonarReqPkt)  ) { // sized in bytes
 		err = errno ;
-                printf("requestSonar:: Couldn't get sonar packet: errno %d\n",err);
+                printf("requestSonar:: Couldn't get sonar packet: errno %d rec: %d\n",err,rec);
                 return -1;
 	}
 
 
-printf("buff: 0x%x 0x%x 0x%x 0x%x 0x%x \n", mbuff[0], mbuff[1], mbuff[2], mbuff[3],mbuff[4]);
-printf("packet: 0x%d 0x%d 0x%d 0x%d 0x%d \n", rPkt.header, rPkt.sensor1, rPkt.sensor2, rPkt.sensor3,rPkt.sensor4);
+//	printf("buff: 0x%x 0x%x 0x%x 0x%x 0x%x \n", mbuff[0], mbuff[1], mbuff[2], mbuff[3],mbuff[4]);
+//	printf("packet: 0x%d 0x%d 0x%d 0x%d 0x%d \n", rPkt.header, rPkt.sonar1, rPkt.sonar2, rPkt.sonar3,rPkt.sonar4);
+printf ("pkt #:%d, s1: %u, s2: %u, s3: %u, s4: %u\n", rPkt.header, rPkt.sonar1, rPkt.sonar2, rPkt.sonar3, rPkt.sonar4);
+printf("other heading:%u, altitude:%u \n", rPkt.heading, rPkt.altitude);
 	//translate to packet, mbuff
 	readData = (mbuff[0] <<24) || (mbuff[1] << 16) || (mbuff[2] <<8 ) || mbuff[3];
 	printf("Read 0x%x \n",readData);
@@ -124,6 +128,7 @@ int main() {
 		}else{
 			printf("no pkt :-(\n");
 		}
+		usleep(10000);
 	}
 	printf("Done trying for sonar packets\n");
 	//close bus
