@@ -59,6 +59,6 @@
 	 * \brief These are the header commands recognizable by the Sensor
 	 * Arduino. Each command is a sensor request
 	 */
-	typedef enum {SONAR1, SONAR2, SONAR3, SONAR4, COMPASS, BAROMETER} sensor_cmd;
+	typedef enum {ALL,SONAR1, SONAR2, SONAR3, SONAR4, COMPASS, BAROMETER} sensor_cmd;
 
 #endif //SHARED_I2C_COM 
