@@ -2,21 +2,10 @@
 #include <sharedi2cCom.h>
 #include <arduinoSlaveSensor.h>
 
-//#define SLAVE_ADDRESS 0x04
-//#define TrigPin1 12 //trig for sensor 1
-//#define EchoPin1 11 //echo for sensor 1
-//#define TrigPin2 8
-//#define EchoPin2 10
-//#define led 13
-//#define led2 9
-
-
-
 int number = 0; // num pkt send back since restart...
 int state = 0;
-int masterCmd =0;
-long distance1; // distance recorded by sensor1
-long distance2,distance3,distance4;
+int masterCmd =0; //the header read from the master device
+long distance1, distance2, distance3, distance4; // distance recorded by sensor1
 uint16_t buffer[7];
 
 
@@ -51,11 +40,14 @@ void setup() {
     Serial.println("Ready!");
 }
 
-
+/**
+ * \brief triggers and reads echo of the 1st 
+ * sensor which dictates left proximity of the craft
+ * max time :  2us+10us+~18ms = ~18.012ms before timeout
+ */
 void pingSonar1() {
    long duration;
-   
-  //sensor 1 Left
+ 
   digitalWrite(TrigPin1, LOW);  // Added this line
   delayMicroseconds(2); // Added this line
   digitalWrite(TrigPin1, HIGH);
@@ -84,10 +76,14 @@ void pingSonar1() {
   }
 }
 
+/**
+ * \brief triggers and reads echo of the 2nd 
+ * sensor which dictates right proximity of the craft
+ * max time: 2us+10us+~18ms = ~18.012ms before timeout
+ */
 void pingSonar2 () {
   long duration;
   
-  //Sensor 2 Right
   digitalWrite(TrigPin2, LOW);  // make low before pulse
   delayMicroseconds(2); // recognize it low
   digitalWrite(TrigPin2, HIGH); // Trigger 10us pulse
@@ -109,10 +105,14 @@ void pingSonar2 () {
 }
 
 
+/**
+ * \brief triggers and reads echo of the 3rd 
+ * sensor which dictates rear proximit of the craft
+ * max time: 2us+10us+~18ms = ~18.012ms before timeout
+ */
 void pingSonar3 () {
   long duration;
-  
-  //Sensor 2 Right
+ 
   digitalWrite(TrigPin3, LOW);  // make low before pulse
   delayMicroseconds(2); // recognize it low
   digitalWrite(TrigPin3, HIGH); // Trigger 10us pulse
@@ -133,10 +133,14 @@ void pingSonar3 () {
      
 }
 
+/**
+ * \brief triggers and reads echo of the 4th 
+ * sensor which dictates height of the craft
+ * max time: 2us+10us+~18ms = ~18.012ms before timeout
+ */
 void pingSonar4 () {
   long duration;
   
-  //Sensor 2 Right
   digitalWrite(TrigPin4, LOW);  // make low before pulse
   delayMicroseconds(2); // recognize it low
   digitalWrite(TrigPin4, HIGH); // Trigger 10us pulse
@@ -157,6 +161,12 @@ void pingSonar4 () {
      
 }
 
+/**
+ * \brief reads  & requests each sonar sensor individually 
+ * with buffer inbetween each reading to prevent contamination of
+ * other sonar signals
+ * max time: 4*18.012ms + 4*10ms = ~ 112.048ms
+ */
 void pingAllSensors () {
   pingSonar1();
   delay(10); /// sensor reads 3.06m in 18ms
@@ -168,11 +178,18 @@ void pingAllSensors () {
   delay(10); /// sensor reads 3.06m in 18ms
 }
 
+
+/**
+ * \brief basically a cyclic executive to run all sensor reading
+ * requests and update their global variables
+ */
 void loop() {
   pingAllSensors();
 }
 
-// callback for received data
+/*
+ * \brief callback for received data
+ */
 void receiveData(int byteCount){
 
     while(Wire.available()) {
@@ -180,7 +197,7 @@ void receiveData(int byteCount){
         masterCmd = Wire.read();
         Serial.print("data received: ");
         Serial.println(masterCmd);
-Serial.println(sizeof(SonarReqPkt));
+//Serial.println(sizeof(SonarReqPkt));
          
          /// test for dummydata
          if (masterCmd = 0xAA){
@@ -193,7 +210,9 @@ Serial.println(sizeof(SonarReqPkt));
      }
 }
 
-// callback for sending data
+/*
+ * \brief callback for sending data
+ */
 void sendData(){
   
   //send sor
