@@ -87,7 +87,7 @@ uint32_t readData;
 		return -1;
 	}	
 	::usleep(100000); //wait some time ::usleep(50000)
-printf("size of SonarReqPkt: %d\n",sizeof(SonarReqPkt));
+printf("Size of SonarReqPkt: %d\n",sizeof(SonarReqPkt));
 	if ((rec = ::read( dev_handle,&rPkt, sizeof(SonarReqPkt) )) != sizeof(SonarReqPkt)  ) { // sized in bytes
 		err = errno ;
                 printf("requestSonar:: Couldn't get sonar packet: errno %d rec: %d\n",err,rec);
@@ -101,7 +101,7 @@ printf ("pkt #:%d, s1: %u, s2: %u, s3: %u, s4: %u\n", rPkt.header, rPkt.sonar1, 
 printf("other heading:%u, altitude:%u \n", rPkt.heading, rPkt.altitude);
 	//translate to packet, mbuff
 	readData = (mbuff[0] <<24) || (mbuff[1] << 16) || (mbuff[2] <<8 ) || mbuff[3];
-	printf("Read 0x%x \n",readData);
+//	printf("Read 0x%x \n",readData);
 	//printf("bytes: 0x%x%x%x%x \n", mbuff[0], mbuff[1], mbuff[2], mbuff[3]);
 
 	printf("requestSonar:: Received packet\n");
@@ -124,9 +124,9 @@ int main() {
 	//get some packets
 	for (i=0;i<10;i++){
 		if( com.requestSonar() ==1 ) {
-			printf("Got pkt \\(^_^)/\n");
+			printf("Got pkt \\(^_^)/\n\n");
 		}else{
-			printf("no pkt :-(\n");
+			printf("no pkt :-(\n\n");
 		}
 		usleep(10000);
 	}
