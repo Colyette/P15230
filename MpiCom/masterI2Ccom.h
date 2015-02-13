@@ -11,6 +11,7 @@
 //headers
 #include <string>
 #include <stdint.h>
+#include "sharedi2cCom.h"
 
 /**
  * Class for i2c communications with Arudino slaves (PPM signal propeller control outbound and  
@@ -48,8 +49,10 @@ public:
 	/**
 	 * @brief sends a packet for PPM interpretation in the quad motion control
 	 * Arduino
+ 	 * \param: cmd the flight command to send
+	 * \param: the parameter to pass, typically a distance
 	 */
-	int sendPPM();
+	int sendPPM(flight_cmd cmd, uint8_t param);
 private:
 	
 	/**

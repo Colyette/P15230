@@ -1,3 +1,12 @@
+/**
+ * arduinoSlaveSensor.ino
+ *
+ * \brief handles requests for sonar reading updates from the Pi
+ *   Sensors are updated ~113ms, if a bad reading (out of range) 
+ *   
+ * \author Alyssa Colyette
+ */
+
 #include <Wire.h>
 #include <sharedi2cCom.h>
 #include <arduinoSlaveSensor.h>

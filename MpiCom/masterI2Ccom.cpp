@@ -108,19 +108,147 @@ printf("other heading:%u, altitude:%u \n", rPkt.heading, rPkt.altitude);
 	return 1;
 }
 
-int MasterI2Ccom::sendPPM(){
+/**
+ * \brief sends a packet to the Arduino PPM slave in order relay 
+ * 	a flight cmd
+ * \param cmd - the command to be sent to the Arduino
+ */
+int MasterI2Ccom::sendPPM(flight_cmd cmd,uint8_t param){
 	//TODO send a pkt to the movement 
+	ReqPkt rPkt;
+        int err,rec;
 
-	printf("sendPPM:: Need to implement ppm direction framwork\n");
-	return 0;
+	//uint32_t readData;
+
+        printf("sendPPM:: Requested packet %d\n", cmd);
+	rPkt.header = cmd;
+	rPkt.payload = param;
+
+        //point to sonar slave
+        if( ioctl( dev_handle, I2C_SLAVE, ppmArduinoAdd) < 0 ){
+                err = errno ;
+                printf( "sendPPM:: I2C bus cannot point to PPM Slave: errno %d \n",err);
+                return 0;
+        }
+        //TODO modify for receiving sonar packets
+        if (    write(dev_handle,&rPkt, sizeof(ReqPkt) ) != sizeof(ReqPkt) ){
+                err = errno ;
+                printf("sendPPM:: Couldn't send flight request packet: errno %d\n",err);
+                return -1;
+        }
+        ::usleep(100000); //wait some time ::usleep(50000)
+printf("Size of ReqPkt: %d\n",sizeof(ReqPkt));
+        if ((rec = ::read( dev_handle,&rPkt, sizeof(ReqPkt) )) != sizeof(ReqPkt)  ) { // sized in bytes
+                err = errno ;
+                printf("sendPPM:: Couldn't get flight request packet reply: errno %d rec: %d\n",err,rec);
+                return -1;
+        }
+	
+	printf ("header #:%d, payload: %u\n", rPkt.header, rPkt.payload);
+
+        printf("requestSonar:: Received packet\n");
+	return 1;
 }
 
 int main() {
 	int i;
+	int testFlight;
 	MasterI2Ccom com = MasterI2Ccom();	
+	flight_cmd cmd = STOP;  //Just a default
+	testFlight = 1; //To keep the interface GOING!
+	uint8_t dumData = 0xAA; //Dummy param's payload data to send for now
 
 	//open bus
 	com.openi2cBus();
+
+	printf("Lets request some Flight Commands\n");
+/*
+printf("ORBIT enum:%d\n",ORBIT);
+printf("DOWN enum:%d\n",DOWN);
+printf("UP enum:%d\n",UP);
+printf("RIGHT enum:%d\n",RIGHT);
+printf("LEFT enum:%d\n",LEFT);
+printf("BACK enum:%d\n",BACK);
+printf("FORWARD enum:%d\n",FORWARD);
+printf("STOP enum:%d\n",STOP);
+*/
+
+	while(testFlight) {
+		printf("Options:\n[1]STOP\n[2]FORWARD\n[3]BACK\n[4]LEFT\n[5]RIGHT\n[6]UP\n[7]DOWN\n[8]ORBIT\n\n[9]quit\n");
+		scanf("%d", &cmd); //might crash if non int
+printf("got %d\n",cmd);
+		//get some packets
+		switch (cmd) {
+			case 1: 
+				if( com.sendPPM(STOP,dumData) ==1 ) { 
+                                        printf("Got pkt \\(^_^)/\n\n");
+                                }else{
+                                        printf("no pkt :-(\n\n");
+                                }
+				break;
+			case 2:
+				if( com.sendPPM(FORWARD,dumData) ==1 ) { 
+                                        printf("Got pkt \\(^_^)/\n\n");
+                                }else{
+                                        printf("no pkt :-(\n\n");
+                                }
+				break;
+			case 3:
+                                if( com.sendPPM(BACK,dumData) ==1 ) {
+                                        printf("Got pkt \\(^_^)/\n\n");
+                                }else{
+                                        printf("no pkt :-(\n\n");
+                                }
+                                break;
+			case 4:
+                                if( com.sendPPM(LEFT,dumData) ==1 ) {
+                                        printf("Got pkt \\(^_^)/\n\n");
+                                }else{
+                                        printf("no pkt :-(\n\n");
+                                }
+                                break;
+			case 5:
+                                if( com.sendPPM(RIGHT,dumData) ==1 ) {
+                                        printf("Got pkt \\(^_^)/\n\n");
+                                }else{
+                                        printf("no pkt :-(\n\n");
+                                }
+                                break;
+			case 6:
+                                if( com.sendPPM(UP,dumData) ==1 ) {
+                                        printf("Got pkt \\(^_^)/\n\n");
+                                }else{
+                                        printf("no pkt :-(\n\n");
+                                }
+                                break;
+			case 7:
+                                if( com.sendPPM(DOWN,dumData) ==1 ) {
+                                        printf("Got pkt \\(^_^)/\n\n");
+                                }else{
+                                        printf("no pkt :-(\n\n");
+                                }
+                                break;
+			case 8:
+                                if( com.sendPPM(ORBIT,dumData) ==1 ) {
+                                        printf("Got pkt \\(^_^)/\n\n");
+                                }else{
+                                        printf("no pkt :-(\n\n");
+                                }
+                                break;
+			case 9:	
+				printf("quitting...\n");
+				testFlight =0;
+				break;
+			default:
+				printf("not supported yet\n");
+				break;
+		}
+		while (getchar()!='\n'); //clean input buffer
+	}//end flight cmd testing
+        printf("Done trying for PPM packets\n\n");
+
+#ifdef TEST_SONAR
+	printf("Lets request some Sonar Readings\n");
 	//get some packets
 	for (i=0;i<10;i++){
 		if( com.requestSonar() ==1 ) {
@@ -131,6 +259,7 @@ int main() {
 		usleep(10000);
 	}
 	printf("Done trying for sonar packets\n");
+#endif
 	//close bus
 	com.closei2cBus();
 	
