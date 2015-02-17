@@ -50,16 +50,29 @@ void loop() {
  * \brief callback for received data
  */
 void receiveData(int byteCount){
-
+  //Serial.println(byteCount);
     while(Wire.available()) {
         //number = Wire.read();
         pkt.header = Wire.read();
-        pkt.payload = Wire.read();
+        pkt.throttle = Wire.read();
+        pkt.yaw= Wire.read();
+        pkt.pitch=Wire.read();
+        pkt.roll=Wire.read();
+       
         //testing prints, DO NOT keep in actual implementation
-        Serial.print("data received::\nCmd: ");
-        Serial.print(pkt.header);
-        Serial.print("\nPayload: ");
-        Serial.println(pkt.payload);
+  
+  //      Serial.print("data received::\nCmd: ");
+        Serial.println(pkt.header);
+       // Serial.print("\nthrottle: ");
+        Serial.println(pkt.throttle);
+    //    Serial.print("\nyaw: ");
+        Serial.println(pkt.yaw);
+   //     Serial.print("\npitch: ");
+        Serial.println(pkt.pitch);
+    //    Serial.print("\nroll: ");
+        Serial.println(pkt.roll);
+        
+        
 //Serial.println(sizeof(ReqPkt));
           
      }

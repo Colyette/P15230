@@ -52,7 +52,7 @@ public:
  	 * \param: cmd the flight command to send
 	 * \param: the parameter to pass, typically a distance
 	 */
-	int sendPPM(flight_cmd cmd, uint8_t param);
+	int sendPPM(ReqPkt * rPkt);
 private:
 	
 	/**

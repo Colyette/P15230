@@ -16,7 +16,10 @@
          */
 	typedef struct {
                 uint8_t header; //Command to the microcontroller
-                uint8_t payload; //For extra params, or requested data
+                uint8_t throttle; 	//speed
+		uint8_t yaw;		//left & right
+		uint8_t pitch;		//forward and back
+		uint8_t roll;		//
 	} ReqPkt;
 
 	/**

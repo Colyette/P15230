@@ -113,16 +113,16 @@ printf("other heading:%u, altitude:%u \n", rPkt.heading, rPkt.altitude);
  * 	a flight cmd
  * \param cmd - the command to be sent to the Arduino
  */
-int MasterI2Ccom::sendPPM(flight_cmd cmd,uint8_t param){
+int MasterI2Ccom::sendPPM(ReqPkt* rPkt){
 	//TODO send a pkt to the movement 
-	ReqPkt rPkt;
+	//ReqPkt rPkt;
         int err,rec;
 
 	//uint32_t readData;
 
-        printf("sendPPM:: Requested packet %d\n", cmd);
-	rPkt.header = cmd;
-	rPkt.payload = param;
+        //printf("sendPPM:: Requested packet %d\n", cmd);
+//	rPkt.header = cmd;
+//	rPkt.payload = param;
 
         //point to sonar slave
         if( ioctl( dev_handle, I2C_SLAVE, ppmArduinoAdd) < 0 ){
@@ -131,20 +131,21 @@ int MasterI2Ccom::sendPPM(flight_cmd cmd,uint8_t param){
                 return 0;
         }
         //TODO modify for receiving sonar packets
-        if (    write(dev_handle,&rPkt, sizeof(ReqPkt) ) != sizeof(ReqPkt) ){
+        if (    write(dev_handle,rPkt, sizeof(ReqPkt) ) != sizeof(ReqPkt) ){
                 err = errno ;
                 printf("sendPPM:: Couldn't send flight request packet: errno %d\n",err);
                 return -1;
         }
         ::usleep(100000); //wait some time ::usleep(50000)
 printf("Size of ReqPkt: %d\n",sizeof(ReqPkt));
-        if ((rec = ::read( dev_handle,&rPkt, sizeof(ReqPkt) )) != sizeof(ReqPkt)  ) { // sized in bytes
+        if ((rec = ::read( dev_handle,rPkt, sizeof(ReqPkt) )) != sizeof(ReqPkt)  ) { // sized in bytes
                 err = errno ;
                 printf("sendPPM:: Couldn't get flight request packet reply: errno %d rec: %d\n",err,rec);
                 return -1;
         }
 	
-	printf ("header #:%d, payload: %u\n", rPkt.header, rPkt.payload);
+	printf ("header #:%d, throttle:%u, yaw:%u, pitch:%u, roll:%u\n", rPkt->header, rPkt->throttle, 
+			rPkt->yaw,rPkt->pitch, rPkt->roll);
 
         printf("requestSonar:: Received packet\n");
 	return 1;
@@ -157,6 +158,9 @@ int main() {
 	flight_cmd cmd = STOP;  //Just a default
 	testFlight = 1; //To keep the interface GOING!
 	uint8_t dumData = 0xAA; //Dummy param's payload data to send for now
+
+	//dum pkts
+	ReqPkt rPkt;
 
 	//open bus
 	com.openi2cBus();
@@ -174,73 +178,125 @@ printf("STOP enum:%d\n",STOP);
 */
 
 	while(testFlight) {
-		printf("Options:\n[1]STOP\n[2]FORWARD\n[3]BACK\n[4]LEFT\n[5]RIGHT\n[6]UP\n[7]DOWN\n[8]ORBIT\n\n[9]quit\n");
+		printf("Options:\n[1]STOP\n[2]FORWARD\n[3]BACK\n[4]LEFT\n[5]RIGHT\n[6]UP\n[7]DOWN\n[8]ORBIT\n[9]quit\n");
 		scanf("%d", &cmd); //might crash if non int
 printf("got %d\n",cmd);
+		printf("\n");
 		//get some packets
 		switch (cmd) {
 			case 1: 
-				if( com.sendPPM(STOP,dumData) ==1 ) { 
+				//STOP
+				rPkt.header = STOP;
+				rPkt.throttle= 0x80;
+				rPkt.yaw = 0x80;
+				rPkt.pitch=0x80;
+				rPkt.roll = 0x80;
+				if( com.sendPPM(&rPkt) ==1 ) { 
                                         printf("Got pkt \\(^_^)/\n\n");
                                 }else{
-                                        printf("no pkt :-(\n\n");
+                                        printf("No pkt :-(\n\n");
                                 }
 				break;
 			case 2:
-				if( com.sendPPM(FORWARD,dumData) ==1 ) { 
+				//Forward
+				rPkt.header = FORWARD;
+                                rPkt.throttle= 0xFF;
+                                rPkt.yaw = 0x80;
+                                rPkt.pitch=0x80;
+                                rPkt.roll = 0x80;
+				if( com.sendPPM(&rPkt) ==1 ) { 
                                         printf("Got pkt \\(^_^)/\n\n");
                                 }else{
-                                        printf("no pkt :-(\n\n");
+                                        printf("No pkt :-(\n\n");
                                 }
 				break;
 			case 3:
-                                if( com.sendPPM(BACK,dumData) ==1 ) {
+				//BACK
+                                rPkt.header = BACK;
+                                rPkt.throttle= 0x00;
+                                rPkt.yaw = 0x80;
+                                rPkt.pitch=0x80;
+                                rPkt.roll = 0x80;
+                                if( com.sendPPM(&rPkt) ==1 ) {
                                         printf("Got pkt \\(^_^)/\n\n");
                                 }else{
-                                        printf("no pkt :-(\n\n");
+                                        printf("No pkt :-(\n\n");
                                 }
                                 break;
 			case 4:
-                                if( com.sendPPM(LEFT,dumData) ==1 ) {
+				//Straf Left
+                                rPkt.header = LEFT;
+                                rPkt.throttle= 0x80;
+                                rPkt.yaw = 0x80;
+                                rPkt.pitch=0x80;
+                                rPkt.roll = 0x80;
+                                if( com.sendPPM(&rPkt) ==1 ) {
                                         printf("Got pkt \\(^_^)/\n\n");
                                 }else{
-                                        printf("no pkt :-(\n\n");
+                                        printf("No pkt :-(\n\n");
                                 }
                                 break;
 			case 5:
-                                if( com.sendPPM(RIGHT,dumData) ==1 ) {
+				//Straf Right
+                                rPkt.header = RIGHT;
+                                rPkt.throttle= 0x80;
+                                rPkt.yaw = 0x80;
+                                rPkt.pitch=0x80;
+                                rPkt.roll = 0x80;
+                                if( com.sendPPM(&rPkt) ==1 ) {
                                         printf("Got pkt \\(^_^)/\n\n");
                                 }else{
-                                        printf("no pkt :-(\n\n");
+                                        printf("No pkt :-(\n\n");
                                 }
                                 break;
 			case 6:
-                                if( com.sendPPM(UP,dumData) ==1 ) {
+				//UP
+                                rPkt.header = UP;
+                                rPkt.throttle= 0x80;
+                                rPkt.yaw = 0x80;
+                                rPkt.pitch=0x80;
+                                rPkt.roll = 0x80;
+
+                                if( com.sendPPM(&rPkt) ==1 ) {
                                         printf("Got pkt \\(^_^)/\n\n");
                                 }else{
-                                        printf("no pkt :-(\n\n");
+                                        printf("No pkt :-(\n\n");
                                 }
                                 break;
 			case 7:
-                                if( com.sendPPM(DOWN,dumData) ==1 ) {
+				//DOWN
+                                rPkt.header = DOWN;
+                                rPkt.throttle= 0x80;
+                                rPkt.yaw = 0x80;
+                                rPkt.pitch=0x80;
+                                rPkt.roll = 0x80;
+
+                                if( com.sendPPM(&rPkt) ==1 ) {
                                         printf("Got pkt \\(^_^)/\n\n");
                                 }else{
-                                        printf("no pkt :-(\n\n");
+                                        printf("No pkt :-(\n\n");
                                 }
                                 break;
 			case 8:
-                                if( com.sendPPM(ORBIT,dumData) ==1 ) {
+				//ORBIT
+                                rPkt.header = ORBIT;
+                                rPkt.throttle= 0x80;
+                                rPkt.yaw = 0x80;
+                                rPkt.pitch=0x80;
+                                rPkt.roll = 0x80;
+
+                                if( com.sendPPM(&rPkt) ==1 ) {
                                         printf("Got pkt \\(^_^)/\n\n");
                                 }else{
-                                        printf("no pkt :-(\n\n");
+                                        printf("No pkt :-(\n\n");
                                 }
                                 break;
 			case 9:	
-				printf("quitting...\n");
+				printf("Quitting...\n");
 				testFlight =0;
 				break;
 			default:
-				printf("not supported yet\n");
+				printf("Not supported yet\n");
 				break;
 		}
 		while (getchar()!='\n'); //clean input buffer
