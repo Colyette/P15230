@@ -9,14 +9,8 @@
  
 #include <Wire.h>
 #include <sharedi2cCom.h>
-//#include <arduinoSlaveSensor.h>
 
-int number = 0; // num pkt send back since restart...
-int state = 0;
-int masterCmd =0; //the header read from the master device
-uint16_t buffer[7];
-
-int flg; 
+int flg; //flag for printing, only for testing
 
 ReqPkt pkt; //packet to be received and passed via I2C 
 int temp;
