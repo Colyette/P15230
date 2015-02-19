@@ -136,7 +136,7 @@ int MasterI2Ccom::sendPPM(ReqPkt* rPkt){
                 printf("sendPPM:: Couldn't send flight request packet: errno %d\n",err);
                 return -1;
         }
-        ::usleep(100000); //wait some time ::usleep(50000)
+        ::usleep(1000);//::usleep(100000); //wait some time ::usleep(50000)
 printf("Size of ReqPkt: %d\n",sizeof(ReqPkt));
         if ((rec = ::read( dev_handle,rPkt, sizeof(ReqPkt) )) != sizeof(ReqPkt)  ) { // sized in bytes
                 err = errno ;
@@ -186,11 +186,18 @@ printf("got %d\n",cmd);
 		switch (cmd) {
 			case 1: 
 				//STOP
+				/**
 				rPkt.header = STOP;
 				rPkt.throttle= 0x80;
 				rPkt.yaw = 0x80;
 				rPkt.pitch=0x80;
 				rPkt.roll = 0x80;
+				*/
+				rPkt.header = 0x5DC;
+                                rPkt.throttle = 0x5DC;
+                                rPkt.yaw = 0x5DC;
+                                rPkt.pitch = 0x5DC;
+                                rPkt.roll = 0x5DC;
 				if( com.sendPPM(&rPkt) ==1 ) { 
                                         printf("Got pkt \\(^_^)/\n\n");
                                 }else{
