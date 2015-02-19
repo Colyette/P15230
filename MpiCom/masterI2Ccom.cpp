@@ -156,6 +156,7 @@ int main() {
 	int testFlight;
 	MasterI2Ccom com = MasterI2Ccom();	
 	flight_cmd cmd = STOP;  //Just a default
+	uint16_t mcmd; //
 	testFlight = 1; //To keep the interface GOING!
 	uint8_t dumData = 0xAA; //Dummy param's payload data to send for now
 
@@ -302,6 +303,34 @@ printf("got %d\n",cmd);
 				printf("Quitting...\n");
 				testFlight =0;
 				break;
+			case 10: 
+				rPkt.header = 0x01;
+				printf("throttle:");
+				scanf("%d", &mcmd);
+				rPkt.throttle = mcmd;
+				printf("\nyaw:");
+                                scanf("%d", &mcmd);
+				rPkt.yaw = mcmd;
+				printf("\npitch:");
+                                scanf("%d", &mcmd);
+                                rPkt.pitch= mcmd;
+				printf("\nroll:");
+                                scanf("%d", &mcmd);
+                                rPkt.roll= mcmd;
+				printf("\n");
+                                if( com.sendPPM(&rPkt) ==1 ) {
+                                        printf("Got pkt \\(^_^)/\n\n");
+                                }else{
+                                        printf("No pkt :-(\n\n");
+                                }
+                                break;
+			case 11:
+				if( com.sendPPM(&rPkt) ==1 ) {
+                                        printf("Got pkt \\(^_^)/\n\n");
+                                }else{
+                                        printf("No pkt :-(\n\n");
+                                }
+                                break;
 			default:
 				printf("Not supported yet\n");
 				break;
