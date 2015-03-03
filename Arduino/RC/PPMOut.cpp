@@ -157,7 +157,8 @@ void PPMOut::updateTimings()
 		++scratch;
 		
 		// set timing
-		*scratch = m_channelTimings[i] - m_pulseLength;
+        //*scratch = m_channelTimings[i] - m_pulseLength; CHANGE
+        *scratch = m_channelTimings[i];
 		++scratch;
 	}
 	
@@ -166,7 +167,8 @@ void PPMOut::updateTimings()
 	++scratch;
 	
 	// set pause length
-	*scratch = m_pauseLength - m_pulseLength;
+	//*scratch = m_pauseLength - m_pulseLength; //TODO changed from orig lib
+	*scratch = m_pauseLength;
 	
 	// update number of timings
 	m_timingCount = (m_channelCount + 1) * 2;

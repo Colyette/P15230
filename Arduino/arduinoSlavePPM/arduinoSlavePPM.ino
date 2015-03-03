@@ -8,7 +8,16 @@
  */
  
 #include <Wire.h>
+#include <PPMOut.h>
+#include <Timer1.h>
 #include <sharedi2cCom.h>
+
+#define CHANNELS 4
+
+uint16_t g_input[CHANNELS];                   // Input buffer in microseconds
+uint8_t  g_work[PPMOUT_WORK_SIZE(CHANNELS)];  // we need to have a work buffer for the PPMOut class
+
+rc::PPMOut g_PPMOut(CHANNELS, g_input, g_work, CHANNELS);
 
 int flg; //flag for printing, only for testing
 
@@ -23,11 +32,17 @@ void setup() {
     // define callbacks for i2c communication
     Wire.onReceive(receiveData);
     Wire.onRequest(sendData);
-
+    rc::Timer1::init();
+    g_input[0] = 300;
+    g_input[1] = 400;
+    g_input[2] = 500;
+    g_input[3] = 600;
+    
+    g_PPMOut.setPulseLength(400);   // pulse length in microseconds
+    g_PPMOut.setPauseLength(5000); // length of pause after last channel in microseconds
+    g_PPMOut.start(9);
     //pin directionality
-  
     //defaults  
-  
     Serial.println("Ready!");
 }
 
@@ -38,21 +53,13 @@ void setup() {
  * \brief basically a cyclic executive to run all streams?
  */
 void loop() {
-  //int flg;
-  if(flg) {
-    //Serial.println(sizeof(ReqPkt));
-     Serial.println(pkt.header);
-       // Serial.print("\nthrottle: ");
-      Serial.println(pkt.throttle);
-    //    Serial.print("\nyaw: ");
-      Serial.println(pkt.yaw);
-   //     Serial.print("\npitch: ");
-      Serial.println(pkt.pitch);
-    //    Serial.print("\nroll: ");
-      Serial.println(pkt.roll);
-      flg = 0; 
-  }
-  
+  g_input[0] = pkt.throttle;
+  g_input[1] = pkt.yaw;
+  g_input[2] = pkt.pitch;
+  g_input[3] = pkt.roll;
+  g_PPMOut.update();
+  Serial.println(g_input[0]);
+
 }
 
 /*
@@ -114,4 +121,3 @@ void sendData(){
   Wire.write((uint8_t *)&pkt,sizeof(ReqPkt));
  
 }
-
