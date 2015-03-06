@@ -51,6 +51,16 @@
          int ppmArduinoAdd =0x08;
 
 	/**
+   	 * I2C address of compass module
+    	 */
+  	int compassAddress = 0x1E; //TODO not needed here
+
+  	/**
+   	* I2C address of barometer module
+   	*/
+   	int baroAddress = 0x77; //TODO not needed here
+
+	/**
 	 * Flight commands
 	 * \brief These are the header commands recognizable by the Flight 
 	 * Arduino 

@@ -14,8 +14,10 @@
 #include <linux/i2c-dev.h>
 #include <sys/ioctl.h>
 #include <stdlib.h>
+#include <math.h>
 #include "masterI2Ccom.h" 
 #include "sharedi2cCom.h" 
+#include "ADXL345.h"    //accelerameter lib
 
 MasterI2Ccom:: MasterI2Ccom(){
 	printf("MasterI2Ccom:: Class initialized \n");
@@ -109,6 +111,45 @@ printf("other heading:%u, altitude:%u \n", rPkt.heading, rPkt.altitude);
 }
 
 /**
+ * \brief requests inertial movement data from the gy-80 sensor
+ * over I2C
+ */
+ int requestIMU(){
+	//gyroscope
+	//request accelerameter readings (IMPORTANT FOR PID)
+	//request compass readings
+
+	//requestn Barometer readings	
+	return 1; //default 
+}
+
+//Get curr accelleration of system
+int getAccelerameter() {
+	// variables updated
+	//point to sonar slave
+//    uint8_t * buffer;
+//        if( ioctl( dev_handle, I2C_SLAVE, accel_addr) < 0 ){
+//                err = errno ;
+//                printf( "getAccelerameter:: I2C bus cannot point to accelerameter comp of GY-80 Slave: errno %d \n",err);
+//                return 0;
+//        }
+//
+//        //TODO modify for receiving sonar packets
+//        if (    write(dev_handle,rPkt, sizeof(ReqPkt) ) != sizeof(ReqPkt) ){
+//                err = errno ;
+//                printf("getAccelerameter:: Couldn't send flight request packet: errno %d\n",err);
+//                return -1;
+//        }
+//        ::usleep(1000);//::usleep(100000); //wait some time ::usleep(50000)
+//        if ((rec = ::read( dev_handle,rPkt, sizeof(ReqPkt) )) != sizeof(ReqPkt)  ) { // sized in bytes
+//                err = errno ;
+//                printf("sendPPM:: Couldn't get flight request packet reply: errno %d rec: %d\n",err,rec);
+//                return -1;
+//        }
+
+}
+
+/**
  * \brief sends a packet to the Arduino PPM slave in order relay 
  * 	a flight cmd
  * \param cmd - the command to be sent to the Arduino
@@ -151,6 +192,7 @@ printf("Size of ReqPkt: %d\n",sizeof(ReqPkt));
 	return 1;
 }
 
+#ifndef SENSOR_TESTING
 int main() {
 	int i;
 	int testFlight;
@@ -356,3 +398,58 @@ printf("got %d\n",cmd);
 	com.closei2cBus();
 	
 }
+
+#elif defined(SENSOR_TESTING)
+//testing of gy-80 sensor
+int main() {
+    int dev_handle; //i2c device handle
+    int retVal;
+    int i;
+    
+    const float alpha = 0.5;
+    
+    double fXg = 0;
+    double fYg = 0;
+    double fZg = 0;
+    
+    MasterI2Ccom com = MasterI2Ccom();	//main interface
+    com.openi2cBus();                   //open i2c device
+    if ((dev_handle = com.get_dev_handle() ) >=0 ) { //if a valid handle
+        ADXL345 acc( com.get_dev_handle() ); //send the i2c device handle opened
+        
+        double pitch, roll, yaw, Xg, Yg, Zg;
+        
+        for (i=0; i<10; i++) {
+            
+            retVal = acc.read(&Xg, &Yg, &Zg);
+            
+            printf("retVal from acc.read= %d\n",retVal);
+            if (retVal >0 ) { // no error in reading device
+            
+                //Low Pass Filter
+                fXg = Xg * alpha + (fXg * (1.0 - alpha));
+                fYg = Yg * alpha + (fYg * (1.0 - alpha));
+                fZg = Zg * alpha + (fZg * (1.0 - alpha));
+            
+                //Roll & Pitch Equations
+                roll  = (atan2(-fYg, fZg)*180.0)/M_PI;
+                pitch = (atan2(fXg, sqrt(fYg*fYg + fZg*fZg))*180.0)/M_PI;
+                //might be yaw
+                //yaw = (atan2()*180.0)/M_PI;
+            
+                //Serial.print(pitch);
+                printf("pitch: %f\troll:%f\n",pitch,roll);
+                //Serial.print(":");
+                //Serial.println(roll);
+            }
+            
+            
+        }//trying 10 times regardless of error
+        
+    }
+    
+    usleep(10000);
+}
+
+
+#endif
