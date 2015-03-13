@@ -19,6 +19,9 @@
 #include "sharedi2cCom.h" 
 #include "ADXL345.h"    //accelerameter lib
 
+
+
+
 MasterI2Ccom:: MasterI2Ccom(){
 	printf("MasterI2Ccom:: Class initialized \n");
 	dev_handle = -1;

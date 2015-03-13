@@ -8,6 +8,7 @@
  * \file BMP085.cpp
  * \brief Modified Arduino code to use on Raspberry Pi with Linux I2C userspace
  *      driver
+ * source:http://bildr.org/2011/06/bmp085-arduino/
  *  modified by Alyssa Colyette on 3/5/15.
  *
  */

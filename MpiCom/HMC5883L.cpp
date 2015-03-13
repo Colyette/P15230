@@ -21,6 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /**
  * \brief modified to take dev_handler for Linux Userspace driver
+ * source: http://bildr.org/2012/02/hmc5883l_arduino/
  * modified by: Alyssa Colyette
  */
 
