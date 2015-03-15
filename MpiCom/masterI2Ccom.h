@@ -12,6 +12,7 @@
 #include <string>
 #include <stdint.h>
 #include "sharedi2cCom.h"
+#include "IMU.h"
 
 //#define M_PI 3.141592653589793238462643 //stolen from Arduino's math.h lib
 
@@ -49,10 +50,19 @@ public:
 	int requestSonar();
 	
 	/**
-	 * \brief requests inertial movement data from the gy-80 sensor
-   	 * over I2C
-  	 */
-	int requestIMU();
+     * \brief lifts the craft from initial takeoff
+     */
+    int launch( double height, double wiggle);
+    
+    /**
+     *  \brief lands the craft from flying position
+     */
+    int land();
+    
+    /**
+     * \brief rotates the copter left/counter-clockwise to the given degree
+     */
+    int rotate(double deg );
 
 	/**
 	 * \brief gives 'absolute coordinates to the LIDAR unit
@@ -73,36 +83,18 @@ public:
      * \brief returns the dev handle for i2c, could be uninitialized
      */
     int get_dev_handle(){return dev_handle;}
+    
 private:
 	
 	/**
 	 * device handle for the i2c bus
 	 */
 	int dev_handle;
+    
+    IMU* imu; //imu sensor for determining current pos to set pos
 
-	/**
-	 * \brief Accelerameter address on GY-80 IMU
- 	 */
-    int accel_addr;//=0x53; //TODO now in ADXL345, and can't be defined in class
-
-
-	/**
-     * \brief Compass address on GY-80 IMU
-     */
-    int comp_addr;//=0x1E;
-
-	/**
-     * \brief Gyroscope address on GY-80 IMU
-     */
-    int gyro_addr;//=0x69;
-
-
-	/**
-     * \brief Barometer address on GY-80 IMU
-     */
-    int baro_addr;//= 0x77;
-
-
+    //soley the direction the copter is facing currently
+    double current_orientation;
 
 };
 #endif //MASTER_I2C_COM

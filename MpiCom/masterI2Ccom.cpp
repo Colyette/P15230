@@ -31,6 +31,10 @@ MasterI2Ccom::~MasterI2Ccom() {
 	printf("~MasterI2Ccom:: Class destroyed\n");
 }
 
+/**
+ * \brief Open the I2C bus on the master Pi, then initilizes the IMU
+ * if sucessful
+ */
 int MasterI2Ccom::openi2cBus() {
 	if(dev_handle > 0) {
 		printf("openi2cBus:: I2C bus already opened\n");
@@ -41,7 +45,9 @@ int MasterI2Ccom::openi2cBus() {
 			
 			// initial open failed, don't bump the ref count
 			return -1 ;
-		}
+        } else{ //Pass handler to IMU
+            imu =  new IMU(dev_handle);
+        }
 	}
 	printf("openi2cBus:: Bus opened desc=%d\n",dev_handle);
  	return 1;
@@ -50,6 +56,7 @@ int MasterI2Ccom::openi2cBus() {
 int MasterI2Ccom::closei2cBus() {
 	//TODO close linux driver
 	int ret;
+    free(imu); //remove IMU instance
 	if ( dev_handle < 0){ //valid handlers can be 0...
 		printf("closei2cBus:: There isn't a valid device open\n");
 		return 0;
@@ -59,6 +66,7 @@ int MasterI2Ccom::closei2cBus() {
 			printf( "closei2cBus:: Couldn't close I2C bus\n");
 			return -1;
 		}
+        
 	}
 	printf("closei2cBus:: Bus closed\n");
 	return 1;
@@ -75,7 +83,7 @@ int MasterI2Ccom::requestSonar(){
 	int err,rec;
 	uint8_t dumData = 0xAA;
 
-uint32_t readData;
+    uint32_t readData;
 
 	printf("requestSonar:: Requested packet\n");
 
@@ -92,7 +100,7 @@ uint32_t readData;
 		return -1;
 	}	
 	::usleep(100000); //wait some time ::usleep(50000)
-printf("Size of SonarReqPkt: %d\n",sizeof(SonarReqPkt));
+    printf("Size of SonarReqPkt: %d\n",sizeof(SonarReqPkt));
 	if ((rec = ::read( dev_handle,&rPkt, sizeof(SonarReqPkt) )) != sizeof(SonarReqPkt)  ) { // sized in bytes
 		err = errno ;
                 printf("requestSonar:: Couldn't get sonar packet: errno %d rec: %d\n",err,rec);
@@ -100,10 +108,10 @@ printf("Size of SonarReqPkt: %d\n",sizeof(SonarReqPkt));
 	}
 
 
-//	printf("buff: 0x%x 0x%x 0x%x 0x%x 0x%x \n", mbuff[0], mbuff[1], mbuff[2], mbuff[3],mbuff[4]);
-//	printf("packet: 0x%d 0x%d 0x%d 0x%d 0x%d \n", rPkt.header, rPkt.sonar1, rPkt.sonar2, rPkt.sonar3,rPkt.sonar4);
-printf ("pkt #:%d, s1: %u, s2: %u, s3: %u, s4: %u\n", rPkt.header, rPkt.sonar1, rPkt.sonar2, rPkt.sonar3, rPkt.sonar4);
-printf("other heading:%u, altitude:%u \n", rPkt.heading, rPkt.altitude);
+    //	printf("buff: 0x%x 0x%x 0x%x 0x%x 0x%x \n", mbuff[0], mbuff[1], mbuff[2], mbuff[3],mbuff[4]);
+    //	printf("packet: 0x%d 0x%d 0x%d 0x%d 0x%d \n", rPkt.header, rPkt.sonar1, rPkt.sonar2, rPkt.sonar3,rPkt.sonar4);
+    printf ("pkt #:%d, s1: %u, s2: %u, s3: %u, s4: %u\n", rPkt.header, rPkt.sonar1, rPkt.sonar2, rPkt.sonar3, rPkt.sonar4);
+
 	//translate to packet, mbuff
 	readData = (mbuff[0] <<24) || (mbuff[1] << 16) || (mbuff[2] <<8 ) || mbuff[3];
 //	printf("Read 0x%x \n",readData);
@@ -113,44 +121,8 @@ printf("other heading:%u, altitude:%u \n", rPkt.heading, rPkt.altitude);
 	return 1;
 }
 
-/**
- * \brief requests inertial movement data from the gy-80 sensor
- * over I2C
- */
- int requestIMU(){
-	//gyroscope
-	//request accelerameter readings (IMPORTANT FOR PID)
-	//request compass readings
 
-	//requestn Barometer readings	
-	return 1; //default 
-}
 
-//Get curr accelleration of system
-int getAccelerameter() {
-	// variables updated
-	//point to sonar slave
-//    uint8_t * buffer;
-//        if( ioctl( dev_handle, I2C_SLAVE, accel_addr) < 0 ){
-//                err = errno ;
-//                printf( "getAccelerameter:: I2C bus cannot point to accelerameter comp of GY-80 Slave: errno %d \n",err);
-//                return 0;
-//        }
-//
-//        //TODO modify for receiving sonar packets
-//        if (    write(dev_handle,rPkt, sizeof(ReqPkt) ) != sizeof(ReqPkt) ){
-//                err = errno ;
-//                printf("getAccelerameter:: Couldn't send flight request packet: errno %d\n",err);
-//                return -1;
-//        }
-//        ::usleep(1000);//::usleep(100000); //wait some time ::usleep(50000)
-//        if ((rec = ::read( dev_handle,rPkt, sizeof(ReqPkt) )) != sizeof(ReqPkt)  ) { // sized in bytes
-//                err = errno ;
-//                printf("sendPPM:: Couldn't get flight request packet reply: errno %d rec: %d\n",err,rec);
-//                return -1;
-//        }
-
-}
 
 /**
  * \brief sends a packet to the Arduino PPM slave in order relay 
@@ -160,40 +132,139 @@ int getAccelerameter() {
 int MasterI2Ccom::sendPPM(ReqPkt* rPkt){
 	//TODO send a pkt to the movement 
 	//ReqPkt rPkt;
-        int err,rec;
+    int err,rec;
 
-	//uint32_t readData;
+    //point to sonar slave
+    if( ioctl( dev_handle, I2C_SLAVE, ppmArduinoAdd) < 0 ){
+            err = errno ;
+            printf( "sendPPM:: I2C bus cannot point to PPM Slave: errno %d \n",err);
+            return 0;
+    }
+    //TODO modify for receiving sonar packets
+    if (    write(dev_handle,rPkt, sizeof(ReqPkt) ) != sizeof(ReqPkt) ){
+            err = errno ;
+            printf("sendPPM:: Couldn't send flight request packet: errno %d\n",err);
+            return -1;
+    }
+    ::usleep(1000);//::usleep(100000); //wait some time ::usleep(50000)
+    printf("Size of ReqPkt: %d\n",sizeof(ReqPkt));
+    if ((rec = ::read( dev_handle,rPkt, sizeof(ReqPkt) )) != sizeof(ReqPkt)  ) { // sized in bytes
+            err = errno ;
+            printf("sendPPM:: Couldn't get flight request packet reply: errno %d rec: %d\n",err,rec);
+            return -1;
+    }
 
-        //printf("sendPPM:: Requested packet %d\n", cmd);
-//	rPkt.header = cmd;
-//	rPkt.payload = param;
+    printf ("header #:%d, throttle:%u, yaw:%u, pitch:%u, roll:%u\n", rPkt->header, rPkt->throttle,
+        rPkt->yaw,rPkt->pitch, rPkt->roll);
 
-        //point to sonar slave
-        if( ioctl( dev_handle, I2C_SLAVE, ppmArduinoAdd) < 0 ){
-                err = errno ;
-                printf( "sendPPM:: I2C bus cannot point to PPM Slave: errno %d \n",err);
-                return 0;
-        }
-        //TODO modify for receiving sonar packets
-        if (    write(dev_handle,rPkt, sizeof(ReqPkt) ) != sizeof(ReqPkt) ){
-                err = errno ;
-                printf("sendPPM:: Couldn't send flight request packet: errno %d\n",err);
-                return -1;
-        }
-        ::usleep(1000);//::usleep(100000); //wait some time ::usleep(50000)
-printf("Size of ReqPkt: %d\n",sizeof(ReqPkt));
-        if ((rec = ::read( dev_handle,rPkt, sizeof(ReqPkt) )) != sizeof(ReqPkt)  ) { // sized in bytes
-                err = errno ;
-                printf("sendPPM:: Couldn't get flight request packet reply: errno %d rec: %d\n",err,rec);
-                return -1;
-        }
-	
-	printf ("header #:%d, throttle:%u, yaw:%u, pitch:%u, roll:%u\n", rPkt->header, rPkt->throttle, 
-			rPkt->yaw,rPkt->pitch, rPkt->roll);
-
-        printf("requestSonar:: Received packet\n");
+    printf("sendPPM:: Received packet\n");
 	return 1;
 }
+
+//############################################ Some generic flight commands###############################
+/**
+ * \brief lifts the craft from initial takeoff, could be used to get higher
+ * height (use 0.1m increments)
+ */
+int MasterI2Ccom::launch( double height, double wiggle){
+    ReqPkt pkt;
+    //ensure some defaults
+    pkt.header = UP;
+    pkt.throttle =0;
+    pkt.yaw =0;
+    pkt.pitch = 0;
+    pkt.roll =0;
+    //iffy control
+    int baro_height; //TODO sample height
+    while ( baro_height != height) { //basically while forever
+        if( (baro_height>=(height -wiggle)) & (baro_height<=(height+wiggle)) ){ //in an acceptable height range
+            return 1; //in acceptable range
+        }
+        if (baro_height <= 0.010 ) { //initial lift may need to be stronger, may need sonar first
+            pkt.header =UP;
+            pkt.throttle= 2000; //some full throt value
+            sendPPM( &pkt );
+        }
+        else if (baro_height > height) { //raise copter
+            pkt.header = UP;
+            pkt.throttle = 1500; // go up moderately
+            sendPPM(&pkt);
+            
+        }else if (baro_height < height) { //lower copter
+            pkt.header= DOWN; //over shoot some, need to release
+            pkt.throttle = 1000; //
+            
+        }
+        //TODO sample height again
+    }
+    
+}
+
+
+/**
+ *  \brief lands the craft from flying position
+ */
+int MasterI2Ccom::land(){
+    ReqPkt pkt;
+    //ensure some defaults
+    pkt.header = DOWN;
+    pkt.throttle =0;
+    pkt.yaw =0;
+    pkt.pitch = 0;
+    pkt.roll =0;
+    //iffy control
+    int baro_height; //TODO sample height
+    while( baro_height >=0.1) { //while not in some safe landing distance
+        //send low throttle cmds to flight controller
+        pkt.throttle =1000; //some low values
+        
+        //TODO sample height again
+        //TODO what if something is located below (should be in object detection framework)
+    }
+    return 1;
+    
+}
+
+/**
+ * \brief rotates the copter left/counter-clockwise to the given degree, relative 
+ * from the start
+ */
+int MasterI2Ccom::rotate(double deg ){
+    ReqPkt pkt;
+    //ensure some defaults
+    pkt.header = DOWN;
+    pkt.throttle =0;
+    pkt.yaw =0;
+    pkt.pitch = 0;
+    pkt.roll =0;
+    int cur_pos;
+    
+    //TODO take sample
+    int setPos = current_orientation - deg; //TODO maybe plus
+    //copter will go full circle sometimes
+    while (cur_pos != setPos) { //allowing some wiggle room
+        if ( (setPos >= (cur_pos - 1)) && (setPos <= (cur_pos+1))  ) { //good enough
+            //TODO test wiggle
+            return 1;
+        } else if ( setPos < cur_pos ) {
+            pkt.header = LEFT;
+            pkt.yaw = 500; // going cc
+            sendPPM(&pkt);
+            
+        } else if( setPos > cur_pos) { //overshoot
+            pkt.header = RIGHT;
+            pkt.yaw = 1500;
+            sendPPM(&pkt);
+        }
+            
+        //TOD0 take new sample
+    }
+    
+    
+            return 1;
+}
+
+
 
 #ifndef SENSOR_TESTING
 int main() {
@@ -403,56 +474,68 @@ printf("got %d\n",cmd);
 }
 
 #elif defined(SENSOR_TESTING)
-//testing of gy-80 sensor
+////testing of gy-80 sensor
+//int main() {
+//    int dev_handle; //i2c device handle
+//    int retVal;
+//    int i;
+//    
+//    const float alpha = 0.5;
+//    
+//    double fXg = 0;
+//    double fYg = 0;
+//    double fZg = 0;
+//    
+//    MasterI2Ccom com = MasterI2Ccom();	//main interface
+//    com.openi2cBus();                   //open i2c device
+//    if ((dev_handle = com.get_dev_handle() ) >=0 ) { //if a valid handle
+//        ADXL345 acc( com.get_dev_handle() ); //send the i2c device handle opened
+//        
+//        double pitch, roll, yaw, Xg, Yg, Zg;
+//        
+//        for (i=0; i<10; i++) {
+//            
+//            retVal = acc.read(&Xg, &Yg, &Zg);
+//            
+//            printf("retVal from acc.read= %d\n",retVal);
+//            if (retVal >0 ) { // no error in reading device
+//            
+//                //Low Pass Filter
+//                fXg = Xg * alpha + (fXg * (1.0 - alpha));
+//                fYg = Yg * alpha + (fYg * (1.0 - alpha));
+//                fZg = Zg * alpha + (fZg * (1.0 - alpha));
+//            
+//                //Roll & Pitch Equations
+//                roll  = (atan2(-fYg, fZg)*180.0)/M_PI;
+//                pitch = (atan2(fXg, sqrt(fYg*fYg + fZg*fZg))*180.0)/M_PI;
+//                //might be yaw
+//                //yaw = (atan2()*180.0)/M_PI;
+//            
+//                //Serial.print(pitch);
+//                printf("pitch: %f\troll:%f\n",pitch,roll);
+//                //Serial.print(":");
+//                //Serial.println(roll);
+//            }
+//            
+//            
+//        }//trying 10 times regardless of error
+//        
+//    }
+//    
+//    usleep(10000);
+//}
+
+//sensor testing still
 int main() {
-    int dev_handle; //i2c device handle
-    int retVal;
-    int i;
-    
-    const float alpha = 0.5;
-    
-    double fXg = 0;
-    double fYg = 0;
-    double fZg = 0;
-    
     MasterI2Ccom com = MasterI2Ccom();	//main interface
     com.openi2cBus();                   //open i2c device
-    if ((dev_handle = com.get_dev_handle() ) >=0 ) { //if a valid handle
-        ADXL345 acc( com.get_dev_handle() ); //send the i2c device handle opened
-        
-        double pitch, roll, yaw, Xg, Yg, Zg;
-        
-        for (i=0; i<10; i++) {
-            
-            retVal = acc.read(&Xg, &Yg, &Zg);
-            
-            printf("retVal from acc.read= %d\n",retVal);
-            if (retVal >0 ) { // no error in reading device
-            
-                //Low Pass Filter
-                fXg = Xg * alpha + (fXg * (1.0 - alpha));
-                fYg = Yg * alpha + (fYg * (1.0 - alpha));
-                fZg = Zg * alpha + (fZg * (1.0 - alpha));
-            
-                //Roll & Pitch Equations
-                roll  = (atan2(-fYg, fZg)*180.0)/M_PI;
-                pitch = (atan2(fXg, sqrt(fYg*fYg + fZg*fZg))*180.0)/M_PI;
-                //might be yaw
-                //yaw = (atan2()*180.0)/M_PI;
-            
-                //Serial.print(pitch);
-                printf("pitch: %f\troll:%f\n",pitch,roll);
-                //Serial.print(":");
-                //Serial.println(roll);
-            }
-            
-            
-        }//trying 10 times regardless of error
-        
-    }
     
-    usleep(10000);
+    
+    printf("closing\n");
+    com.closei2cBus();
+    
+    
+    return 1;
 }
-
 
 #endif
