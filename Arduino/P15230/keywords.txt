@@ -1,0 +1,25 @@
+#######################################
+# Syntax Coloring Map For Matrix
+# For P15230 Libraries
+#######################################
+
+#######################################
+# Datatypes (KEYWORD1)
+#######################################
+
+SonarReqPkt     KEYWORD1
+ReqPkt  KEYWORD1
+flight_cmd  KEYWORD1
+sensor_cmd  KEYWORD1
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+
+#ReadRawAxis         KEYWORD2
+
+
+#######################################
+# Constants (LITERAL1)
+#######################################
+
+ppmArduinoAdd  LITERAL1
