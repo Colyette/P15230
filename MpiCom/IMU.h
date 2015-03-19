@@ -2,6 +2,7 @@
 #define _IMU_H_
 
 #include "Adafruit_LSM303.h"    // compass and accelerameter library/interface
+#include "Adafruit_BMP085.h"         // barometer library/interface
 
 #define COMPASS_ADDRESS         (0x1E)  //address of compass, same as gy-80
 #define LINEAR_ACCEL_ADDRESS    (0x19)
@@ -21,6 +22,8 @@ public:
     //gets the 3 DoF for orientation, pass in datastruct
     int getCompassValues();
     
+    //get the altitude
+    int getAltitude();
     
     int16_t c_x;
     int16_t c_y;
@@ -30,6 +33,8 @@ public:
     int16_t a_y;
     int16_t a_z;
     
+    
+    
     float heading;
 private:
     
@@ -38,6 +43,8 @@ private:
     int dev_handle; //handler for I2C bus
     
     Adafruit_LSM303 com_acc; //compass and accelerameter module
+    
+    Adafruit_BMP085 baro;        //barometer module
 };
 
 #endif //_IMU_H_

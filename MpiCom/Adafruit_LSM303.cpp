@@ -184,7 +184,7 @@ bool Adafruit_LSM303::write8(uint8_t address, uint8_t reg, uint8_t value)
   //Wire.beginTransmission(address);
     if( ioctl( dev_handle, I2C_SLAVE, address) < 0 ){
         err = errno ;
-        printf( "ADXL345::write8: I2C bus cannot point to accelerameter comp of GY-80 Slave: errno %d\n",err);
+        printf( "ADXL345::write8: I2C bus cannot point to accelerameter/comp of LSM303 slave: errno %d\n",err);
         return false;
     }
     

@@ -136,6 +136,10 @@ void MasterI2Ccom::reqAndprintCompassData(){
     printf("heading:%f\n",imu->heading);
 }
 
+void MasterI2Ccom::reqAndprintBarometerData() {
+    imu -> getAltitude(); //TODO remove prints in getAltitude
+}
+
 //##########################
 
 
@@ -593,19 +597,22 @@ int main() {
         //read values 10x
         com.reqAndprintAccelerameterData();
         com.reqAndprintCompassData();
+        printf("\n");
+        com.reqAndprintBarometerData();
         printf("\n\n");
+        
         ::sleep(1);
     }
     
-    printf("lets test turning to 180 deg\n");
+    printf("lets test turning to 100 deg\n");
     ::sleep (5);
-    com.rotate(180);
+    com.rotate(100);
     printf("lets test turning to 90 deg\n");
     ::sleep(1);
     com.rotate(90);
-    printf ("lets test turning to 100 deg\n");
+    printf ("lets test turning to 180 deg\n");
     ::sleep(1);
-    com.rotate(100);
+    com.rotate(180);
     printf ("lets test turning to 0 deg\n");
     ::sleep(1);
     com.rotate(0);
