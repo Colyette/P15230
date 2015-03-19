@@ -133,6 +133,7 @@ void MasterI2Ccom::reqAndprintAccelerameterData(){
 void MasterI2Ccom::reqAndprintCompassData(){
     imu -> getCompassValues();
     printf("Comp:\nx:%d\ty:%d\tz:%d\n", imu->c_x, imu->c_y, imu->c_z);
+    printf("heading:%f\n",imu->heading);
 }
 
 //##########################

@@ -2,7 +2,7 @@
 
 #include "IMU.h"
 #include <stdio.h>
-
+#include <math.h> // for heading calculations
 IMU::IMU(){
     printf("default IMU contructor\n");
 }
@@ -42,5 +42,16 @@ int IMU::getCompassValues(){
     c_x = com_acc.magData.x;
     c_y= com_acc.magData.y;
     c_z = com_acc.magData.z;
+    
+    //calc heading
+    float Pi = 3.14159;
+    
+    // Calculate the angle of the vector y,x
+    heading = (atan2(c_y,c_x) * 180) / Pi;
+    //conv to 360 deg (+)
+    if (heading <0) {
+        heading = heading +360;
+    }
+    
     return 1;//TODO
 }

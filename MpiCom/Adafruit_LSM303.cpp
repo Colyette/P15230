@@ -56,8 +56,8 @@ bool Adafruit_LSM303::begin()
         printf("Couldn't enable magnetometer\n");
         return false;
     }
-    ret = readBytes(LSM303_ADDRESS_MAG,LSM303_REGISTER_MAG_MR_REG_M, temp,1);
-    printf("Wrote 0x%x for Mag config,ret %d\n",temp[0],ret);
+    //ret = readBytes(LSM303_ADDRESS_MAG,LSM303_REGISTER_MAG_MR_REG_M, temp,1);
+    //printf("Wrote 0x%x for Mag config,ret %d\n",temp[0],ret);
   
     
     // Enable the accelerometer
@@ -66,8 +66,8 @@ bool Adafruit_LSM303::begin()
         printf("Couldn't enable accelerometer\n");
         return false;
     }
-    readBytes(LSM303_ADDRESS_ACCEL,LSM303_REGISTER_ACCEL_CTRL_REG1_A, temp, 1);
-    printf("Wrote 0x%x for Accel config\n",temp[0]);
+    //readBytes(LSM303_ADDRESS_ACCEL,LSM303_REGISTER_ACCEL_CTRL_REG1_A, temp, 1);
+    //printf("Wrote 0x%x for Accel config\n",temp[0]);
 
     
     printf("accelerometer and compass instantiated\n");
@@ -117,7 +117,7 @@ void Adafruit_LSM303::readAccel()
     accelData.z = (int16_t) ( ((uint16_t)zlo | (uint16_t)(zhi << 8)) >> 4);
     
     //printf("accel:\tx:0x%x\ty:0x%x\tz:0x%x\n",(xlo | (xhi << 8)) >> 4,(xlo | (xhi << 8)) >> 4, (zlo | (zhi << 8)) >> 4);
-    printf("accel:\tx:0x%x\ty:0x%x\tz:0x%x\n",accelData.x,accelData.y, accelData.z);
+    //printf("accel:\tx:0x%x\ty:0x%x\tz:0x%x\n",accelData.x,accelData.y, accelData.z);
 }
 
 void Adafruit_LSM303::readComp()
@@ -154,7 +154,7 @@ void Adafruit_LSM303::readComp()
     magData.y = (int16_t) ((uint16_t)ylo | (uint16_t)(yhi << 8));
     magData.z = (int16_t) ((uint16_t)zlo | (uint16_t)(zhi << 8));
     //printf("comp:\tx:0x%x\ty:0x%x\tz:0x%x\n",(xlo | (xhi << 8)),(ylo | (yhi << 8)), (zlo | (zhi << 8)));
-    printf("comp:\tx:0x%x\ty:0x%x\tz:0x%x\n",magData.x,magData.y, magData.z);
+    //printf("comp:\tx:0x%x\ty:0x%x\tz:0x%x\n",magData.x,magData.y, magData.z);
     // ToDo: Calculate orientation
     magData.orientation = 0.0;
 }

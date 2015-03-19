@@ -29,6 +29,8 @@ public:
     int16_t a_x;
     int16_t a_y;
     int16_t a_z;
+    
+    float heading;
 private:
     
     
