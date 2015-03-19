@@ -160,16 +160,17 @@ void channelSet(){
 }
 
 void pingAvg(){                              // Converts & Filters Ping data
-  distance_L = (echoLength_L / 58);          // Computes distance from Left ping sensor in CM
-  distance_R = (echoLength_R / 58);          // Computes distance from Right ping sensor in CM
-  distance_Bk = (echoLength_Bk / 58);        // Computes distance from Back ping sensor in CM
-  distance_Lo = (echoLength_Lo / 58);        // Computes distance from Bottom ping sensor in CM
+  spkt.sonar1 = distance_L = (echoLength_L / 58);          // Computes distance from Left ping sensor in CM
+  spkt.sonar2 = distance_R = (echoLength_R / 58);          // Computes distance from Right ping sensor in CM
+  spkt.sonar3 = distance_Bk = (echoLength_Bk / 58);        // Computes distance from Back ping sensor in CM
+  spkt.sonar4 = distance_Lo = (echoLength_Lo / 58);        // Computes distance from Bottom ping sensor in CM
   //pFlg=0;
+  /*
   spkt.sonar1 = distance_L;
   spkt.sonar2 =distance_R;
   spkt.sonar3 = distance_Bk;
   spkt.sonar4 =distance_Lo;
-  
+  */
   // Hello World
 }
 
