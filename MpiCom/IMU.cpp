@@ -71,19 +71,22 @@ int IMU::getAltitude(){
 //    Serial.print("Pressure = ");
 //    Serial.print(bmp.readPressure());
 //    Serial.println(" Pa");
-    printf("Pressure = %d Pa\n",baro.readPressure() );
+    temp = baro.readPressure();
+    //printf("Pressure = %d Pa\n",temp );
     
     // Calculate altitude assuming 'standard' barometric
     // pressure of 1013.25 millibar = 101325 Pascal
 //    Serial.print("Altitude = ");
 //    Serial.print(bmp.readAltitude());
 //    Serial.println(" meters");
-    printf("Altitude = %f meters\n",baro.readAltitude() );
+    alt_m = baro.readAltitude();
+    //printf("Altitude = %f meters\n", alt_m);
     
 //    Serial.print("Pressure at sealevel (calculated) = ");
 //    Serial.print(bmp.readSealevelPressure());
 //    Serial.println(" Pa");
-    printf("Pressure at sealevel (calculated) = %d Pa\n", baro.readSealevelPressure() );
+    slPressure = baro.readSealevelPressure();
+    //printf("Pressure at sealevel (calculated) = %d Pa\n", slPressure );
     
     // you can get a more precise measurement of altitude
     // if you know the current sea level pressure which will
@@ -92,7 +95,8 @@ int IMU::getAltitude(){
 //    Serial.print("Real altitude = ");
 //    Serial.print(bmp.readAltitude(101500));
 //    Serial.println(" meters");
-    printf("Real altitude = %f meters\n", baro.readAltitude(101500) );
+    r_alt_m = baro.readAltitude(101500);
+    //printf("Real altitude = %f meters\n",  r_alt_m);
     
     //Serial.println();
     //delay(500);

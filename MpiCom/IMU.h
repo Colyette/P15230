@@ -25,13 +25,21 @@ public:
     //get the altitude
     int getAltitude();
     
+    //mag readings
     int16_t c_x;
     int16_t c_y;
     int16_t c_z;
-    
+    //accelerometer readings
     int16_t a_x;
     int16_t a_y;
     int16_t a_z;
+    //baro readings
+    float temp;
+    float alt_m;
+    int32_t slPressure;
+    float r_alt_m;
+    //TODO store first baro altitude calculation
+    
     
     
     

@@ -138,7 +138,12 @@ void MasterI2Ccom::reqAndprintCompassData(){
 
 void MasterI2Ccom::reqAndprintBarometerData() {
     imu -> getAltitude(); //TODO remove prints in getAltitude
+    printf("Pressure = %d Pa\n",imu->temp );
+    printf("Altitude = %f meters\n", imu->alt_m);
+    printf("Pressure at sealevel (calculated) = %d Pa\n", imu->slPressure );
+    printf("Real altitude = %f meters\n",  imu->r_alt_m);
 }
+
 
 //##########################
 
@@ -261,7 +266,7 @@ int MasterI2Ccom::rotate(double deg ){
     double wiggleR,wiggleL;
     //ensure some defaults
     pkt.header = DOWN;
-    pkt.throttle =0;
+    pkt.throttle =0; //todo, for alt hold
     pkt.yaw =0;
     pkt.pitch = 0;
     pkt.roll =0;
@@ -291,19 +296,19 @@ int MasterI2Ccom::rotate(double deg ){
         if ( (wiggleR >= cur_pos) && (wiggleL <= cur_pos)  ) { //good enough [+/- 2.5deg var]
             //TODO test wiggle, send ppm for att hold
             pkt.header = STOP;
-            pkt.yaw = 0; //stop rotation
+            pkt.yaw = 1000; //stop rotation
             //sendPPM(&pkt);
             printf("THERE\n");
             return 1;
         } else if ( lChoice < rChoice ) { //turn left
             pkt.header = LEFT;
-            pkt.yaw = 500; // going cc
+            pkt.yaw = 0; // going cc
             //sendPPM(&pkt);
             printf("GO LEFT\n");
             
         } else if( lChoice > rChoice) { //turn right
             pkt.header = RIGHT;
-            pkt.yaw = 1500;
+            pkt.yaw = 2000;
             //sendPPM(&pkt);
             printf("GO RIGHT\n");
         }

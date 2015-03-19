@@ -52,6 +52,7 @@ public:
     //TEsting functs
     void reqAndprintAccelerameterData();
     void reqAndprintCompassData();
+    void reqAndprintBarometerData();
 	
 	/**
      * \brief lifts the craft from initial takeoff

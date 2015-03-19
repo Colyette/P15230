@@ -66,6 +66,8 @@ public:
     //passes the already opened dev handle to  use within the class environment
     void set_dev_handle(int e_dev_handle);
     
+    
+    float base_alt;
 private:
     int32_t computeB5(int32_t UT);
     uint8_t read8(uint8_t addr);
