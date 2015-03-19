@@ -231,53 +231,95 @@ int MasterI2Ccom::land(){
     int baro_height; //TODO sample height
     while( baro_height >=0.1) { //while not in some safe landing distance
         //send low throttle cmds to flight controller
+        pkt.header = DOWN;
         pkt.throttle =1000; //some low values
         
         //TODO sample height again
         //TODO what if something is located below (should be in object detection framework)
     }
     //TODO stop motors
+    //TODO test wiggle, send ppm for att hold
+    pkt.header = STOP;
+    pkt.throttle = 0; //stop throttle completely
+    sendPPM(&pkt);
+
     return 1;
     
 }
 
 /**
- * \brief rotates the copter left/counter-clockwise to the given degree, relative 
- * from the start
+ * \brief rotates the copter to the given degree (0-360)
  */
 int MasterI2Ccom::rotate(double deg ){
     ReqPkt pkt;
+    double rChoice,lChoice; //turning effort
+    double cur_pos;
+    double wiggleR,wiggleL;
     //ensure some defaults
     pkt.header = DOWN;
     pkt.throttle =0;
     pkt.yaw =0;
     pkt.pitch = 0;
     pkt.roll =0;
-    int cur_pos;
-    
+    //assuming measurement already taken
+    cur_pos= imu->heading;
+    rChoice = cur_pos + deg;
+    if (rChoice >= 360) {
+        rChoice= rChoice -360; //account for range
+    }
+    lChoice = cur_pos - deg;
+    if (lChoice < 0) {
+        lChoice = lChoice+360;
+    }
     //TODO take sample
-    int setPos = current_orientation - deg; //TODO maybe plus
-    //copter will go full circle sometimes
-    while (cur_pos != setPos) { //allowing some wiggle room
-        if ( (setPos >= (cur_pos - 1)) && (setPos <= (cur_pos+1))  ) { //good enough
-            //TODO test wiggle, send ppm for att hold
-            return 1;
-        } else if ( setPos < cur_pos ) {
-            pkt.header = LEFT;
-            pkt.yaw = 500; // going cc
-            sendPPM(&pkt);
-            
-        } else if( setPos > cur_pos) { //overshoot
-            pkt.header = RIGHT;
-            pkt.yaw = 1500;
-            sendPPM(&pkt);
-        }
-            
-        //TOD0 take new sample
+    int setPos = deg; //TODO maybe plus
+    wiggleL = setPos -2.5;
+    if ( wiggleL <0) {
+        wiggleL = wiggleL+360;
+    }
+    wiggleR = setPos +2.5;
+    if ( wiggleR >=360){
+        wiggleR = wiggleR -360;
     }
     
-    
+    while (cur_pos != setPos) { //allowing some wiggle room
+        
+        if ( (wiggleR >= cur_pos) && (wiggleL <= cur_pos)  ) { //good enough [+/- 2.5deg var]
+            //TODO test wiggle, send ppm for att hold
+            pkt.header = STOP;
+            pkt.yaw = 0; //stop rotation
+            //sendPPM(&pkt);
+            printf("THERE\n");
             return 1;
+        } else if ( lChoice < rChoice ) { //turn left
+            pkt.header = LEFT;
+            pkt.yaw = 500; // going cc
+            //sendPPM(&pkt);
+            printf("GO LEFT\n");
+            
+        } else if( lChoice > rChoice) { //turn right
+            pkt.header = RIGHT;
+            pkt.yaw = 1500;
+            //sendPPM(&pkt);
+            printf("GO RIGHT\n");
+        }
+            
+        //TODO take new sample
+        imu -> getCompassValues();
+        cur_pos = imu->heading;
+        rChoice = cur_pos + deg;
+        if (rChoice >= 360) {
+            rChoice= rChoice -360; //account for range
+        }
+        lChoice = cur_pos - deg;
+        if (lChoice < 0) {
+            lChoice = lChoice+360;
+        }
+        ::sleep(1); // not realiable for real time.. I think (time to actualize held command)
+    }
+    
+    //Shouldn't get here...
+    return 1;
 }
 
 
@@ -554,6 +596,20 @@ int main() {
         printf("\n\n");
         ::sleep(1);
     }
+    
+    printf("lets test turning to 180 deg\n");
+    ::sleep (5);
+    com.rotate(180);
+    printf("lets test turning to 90 deg\n");
+    ::sleep(1);
+    com.rotate(90);
+    printf ("lets test turning to 100 deg\n");
+    ::sleep(1);
+    com.rotate(100);
+    printf ("lets test turning to 0 deg\n");
+    ::sleep(1);
+    com.rotate(0);
+    
     
     printf("closing\n");
     com.closei2cBus();
