@@ -48,6 +48,10 @@ public:
 	 * \brief requests a sonar packet from sonar slave Arduino
 	 */
 	int requestSonar();
+    
+    //TEsting functs
+    void reqAndprintAccelerameterData();
+    void reqAndprintCompassData();
 	
 	/**
      * \brief lifts the craft from initial takeoff
@@ -83,6 +87,8 @@ public:
      * \brief returns the dev handle for i2c, could be uninitialized
      */
     int get_dev_handle(){return dev_handle;}
+    
+    
     
 private:
 	

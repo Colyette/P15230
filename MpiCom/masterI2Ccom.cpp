@@ -46,6 +46,7 @@ int MasterI2Ccom::openi2cBus() {
 			// initial open failed, don't bump the ref count
 			return -1 ;
         } else{ //Pass handler to IMU
+            printf("passing desc=%d to IMU\n",dev_handle);
             imu =  new IMU(dev_handle);
         }
 	}
@@ -121,11 +122,24 @@ int MasterI2Ccom::requestSonar(){
 	return 1;
 }
 
+//####################################
+//TEsting functs
+void MasterI2Ccom::reqAndprintAccelerameterData(){
+    imu -> getAccelerationValues();
+    printf("Accel:\nx:%d\ty:%d\tz:%d\n", imu->a_x, imu->a_y, imu->a_z);
+    
+}
 
+void MasterI2Ccom::reqAndprintCompassData(){
+    imu -> getCompassValues();
+    printf("Comp:\nx:%d\ty:%d\tz:%d\n", imu->c_x, imu->c_y, imu->c_z);
+}
+
+//##########################
 
 
 /**
- * \brief sends a packet to the Arduino PPM slave in order relay 
+ * \brief sends a packet to the Arduino PPM slave in order relay
  * 	a flight cmd
  * \param cmd - the command to be sent to the Arduino
  */
@@ -221,6 +235,7 @@ int MasterI2Ccom::land(){
         //TODO sample height again
         //TODO what if something is located below (should be in object detection framework)
     }
+    //TODO stop motors
     return 1;
     
 }
@@ -244,7 +259,7 @@ int MasterI2Ccom::rotate(double deg ){
     //copter will go full circle sometimes
     while (cur_pos != setPos) { //allowing some wiggle room
         if ( (setPos >= (cur_pos - 1)) && (setPos <= (cur_pos+1))  ) { //good enough
-            //TODO test wiggle
+            //TODO test wiggle, send ppm for att hold
             return 1;
         } else if ( setPos < cur_pos ) {
             pkt.header = LEFT;
@@ -530,6 +545,14 @@ int main() {
     MasterI2Ccom com = MasterI2Ccom();	//main interface
     com.openi2cBus();                   //open i2c device
     
+    
+    for (int i =0; i < 10; i++) {
+        //read values 10x
+        com.reqAndprintAccelerameterData();
+        com.reqAndprintCompassData();
+        printf("\n\n");
+        ::sleep(1);
+    }
     
     printf("closing\n");
     com.closei2cBus();
