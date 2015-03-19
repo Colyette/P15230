@@ -15,11 +15,12 @@
 	 * as an extra parameter for the Pi to the Arduino
          */
 	typedef struct {
-                uint16_t header; //Command to the microcontroller
-                uint16_t throttle; 	//speed
-		uint16_t yaw;		//left & right
+        uint16_t header; //Command to the microcontroller
+        uint16_t throttle; 	//speed
+		uint16_t yaw;		//left & right turning
 		uint16_t pitch;		//forward and back
-		uint16_t roll;		//
+		uint16_t roll;		//straft right and left
+        uint16_t altitudeHold; // used binarily for holding height, later holds valued height
 	} ReqPkt;
 
 	/**
@@ -32,11 +33,9 @@
         typedef struct {
                 uint16_t header; //Command to the microcontroller
                 uint16_t sonar1; 
-		uint16_t sonar2;
-		uint16_t sonar3;
-		uint16_t sonar4;
-		uint16_t heading; //heading calculated by float on Compass
-		uint16_t altitude; //altitude is calculated as float on Barometer
+		    uint16_t sonar2;
+		    uint16_t sonar3;
+		    uint16_t sonar4;
         } SonarReqPkt;
 	
 
