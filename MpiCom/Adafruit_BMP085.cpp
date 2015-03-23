@@ -34,6 +34,13 @@ void Adafruit_BMP085::set_dev_handle(int e_dev_handle){
     dev_handle = e_dev_handle;
 }
 
+/**
+ * \brief passed mutex for the dev handle
+ */
+void Adafruit_BMP085::set_dev_mutex(pthread_mutex_t* e_dev_handle_mutex){
+    dev_handle_mutex_ptr = e_dev_handle_mutex;
+}
+
 bool Adafruit_BMP085::begin(uint8_t mode) {
     if (mode > BMP085_ULTRAHIGHRES)
         mode = BMP085_ULTRAHIGHRES;
@@ -261,6 +268,13 @@ uint8_t Adafruit_BMP085::read8(uint8_t a) {
     int err,rec;
     uint8_t buffer[2];
     buffer[0] =a;
+    
+    //LOCK
+    if (pthread_mutex_lock(dev_handle_mutex_ptr) ){
+        printf("Adafruit_BMP085::read8: Error locking thread\n");
+        return (-1);
+    }
+    
     //Wire.beginTransmission(BMP085_I2CADDR); // start transmission to device
     if( ioctl( dev_handle, I2C_SLAVE, BMP085_I2CADDR) < 0 ){
         err = errno ;
@@ -294,6 +308,12 @@ uint8_t Adafruit_BMP085::read8(uint8_t a) {
         return -1;
     }
     ret = buffer[0];
+    
+    //UNLOCK~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    if (pthread_mutex_unlock( dev_handle_mutex_ptr) ) {
+        printf("Adafruit_BMP085::read8: Error unlocking thread\n");
+        return (-1);
+    }
     return ret;
 }
 
@@ -307,6 +327,13 @@ uint16_t Adafruit_BMP085::read16(uint8_t a) {
     int err,rec;
     uint8_t buffer[2];
     buffer[0] =a;
+    
+    //LOCK~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    if (pthread_mutex_lock(dev_handle_mutex_ptr) ){
+        printf("Adafruit_BMP085::read16:Error locking thread\n");
+        return (-1);
+    }
+    
     if( ioctl( dev_handle, I2C_SLAVE, BMP085_I2CADDR) < 0 ){
         err = errno ;
         printf( "Adafruit_BMP085::read16: I2C bus cannot point to barometer of IMU Slave: errno %d\n",err);
@@ -324,6 +351,13 @@ uint16_t Adafruit_BMP085::read16(uint8_t a) {
         printf("Adafruit_BMP085::read16: Couldn't read from register: errno %d rec: %d\n",err,rec);
         return -1;
     }
+    
+    //UNLOCK~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    if (pthread_mutex_unlock( dev_handle_mutex_ptr) ) {
+        printf("Adafruit_BMP085::read16: Error unlocking thread\n");
+        return (-1);
+    }
+    
     //MSB is first
     ret = ( (buffer[0]<<8) | buffer[1] );
     return ret;
@@ -339,6 +373,12 @@ uint8_t Adafruit_BMP085::write8(uint8_t a, uint8_t d) {
     int written_bytes;
     int err,rec;
     uint8_t buffer[2];
+    
+    //LOCK~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    if (pthread_mutex_lock(dev_handle_mutex_ptr) ){
+        printf("ADXL345::writeRegister:Error locking thread\n");
+        return (-1);
+    }
     
     //Wire.beginTransmission(BMP085_I2CADDR); // start transmission to device
     if( ioctl( dev_handle, I2C_SLAVE, BMP085_I2CADDR) < 0 ){
@@ -356,5 +396,10 @@ uint8_t Adafruit_BMP085::write8(uint8_t a, uint8_t d) {
         err = errno ;
         printf("ADXL345::writeRegister: change write register address: errno %d\n",err);
         return false;
+    }
+    //UNLOCK~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    if (pthread_mutex_unlock( dev_handle_mutex_ptr) ) {
+        printf("ADXL345::writeRegister:Error unlocking thread\n");
+        return (-1);
     }
 }

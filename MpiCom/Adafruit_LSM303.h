@@ -16,6 +16,7 @@
 #define __LSM303_H__
 
 #include <stdint.h>  //for uint8_t
+#include <pthread.h>    //for i2c dev mutex
 
 #define LSM303_ADDRESS_ACCEL          (0x32 >> 1)         // 0011001x
 #define LSM303_ADDRESS_MAG            (0x3C >> 1)         // 0011110x
@@ -118,9 +119,14 @@ class Adafruit_LSM303
     //passes the already opened dev handle to  use within the class environment
     void set_dev_handle(int e_dev_handle);
     
+    //passed mutex for the dev handle
+    void set_dev_mutex(pthread_mutex_t* e_dev_handle_mutex);
+    
   private:
     //dev handle of i2c driver
     int dev_handle;
+    //dev handle
+    pthread_mutex_t* dev_handle_mutex_ptr;
     
     bool write8(uint8_t address, uint8_t reg, uint8_t value);
     uint8_t read8(uint8_t address, uint8_t reg);

@@ -19,12 +19,64 @@
 #include "sharedi2cCom.h" 
 #include "ADXL345.h"    //accelerameter lib
 
+#define NUM_SAMPLES (5)
 
 
+void * BarometerHelper(void* instance) {
+    MasterI2Ccom* c_instance = (MasterI2Ccom*) instance;
+    printf("BarometerThread: Going into continous reading function\n");
+    c_instance->continousBaroReading(); //casted to instantiated class and run main thread funct
+    return 0 ;
+}
+
+void MasterI2Ccom::continousBaroReading(){
+    float lastValues[5];
+    float ravg;
+    int count=0;
+    int i;
+    
+    while(runBaro){
+        
+        imu -> getAltitude(); //Updates class variables
+        lastValues[count] = (imu->alt_m-imu->c_base_alt);
+        //printf("[%d]got %fm\n",count,lastValues[count]);
+        count++;
+        if(count == NUM_SAMPLES ){
+          //  printf("calc avg\n");
+            ravg = 0;
+            for (i =0; i<NUM_SAMPLES;i++) {
+                ravg += lastValues[i];
+            }
+            imu->avgBaro = ravg/NUM_SAMPLES;
+            //printf("Avg:%f meter diff\n",imu->avgBaro);
+            count =0;
+        }
+    }
+}
+
+/**
+* \brief starts the baro thread
+*/
+int MasterI2Ccom::startBaroThread(){
+    runBaro=1;
+    if(pthread_create(&baroThread, NULL,BarometerHelper,this)){
+        printf("MainThread: error creating BaroThread thread\n");
+        return -1;
+    }
+}
+
+void MasterI2Ccom::stopBaroThread() {
+    runBaro =0;
+    pthread_join(baroThread,NULL);
+    printf("BaroThread closed\n");
+    return;
+}
 
 MasterI2Ccom:: MasterI2Ccom(){
 	printf("MasterI2Ccom:: Class initialized \n");
 	dev_handle = -1;
+    //dev_handle_mutex = PTHREAD_MUTEX_INITIALIZER;
+    pthread_mutex_init(&dev_handle_mutex,NULL);
 }
 
 MasterI2Ccom::~MasterI2Ccom() {
@@ -47,7 +99,7 @@ int MasterI2Ccom::openi2cBus() {
 			return -1 ;
         } else{ //Pass handler to IMU
             printf("passing desc=%d to IMU\n",dev_handle);
-            imu =  new IMU(dev_handle);
+            imu =  new IMU(dev_handle,&dev_handle_mutex);
         }
 	}
 	printf("openi2cBus:: Bus opened desc=%d\n",dev_handle);
@@ -137,11 +189,13 @@ void MasterI2Ccom::reqAndprintCompassData(){
 }
 
 void MasterI2Ccom::reqAndprintBarometerData() {
-    imu -> getAltitude(); //TODO remove prints in getAltitude
+   //done in thread now imu -> getAltitude(); //TODO remove prints in getAltitude
     printf("Pressure = %d Pa\n",imu->temp );
     printf("Altitude = %f meters\n", imu->alt_m);
     printf("Pressure at sealevel (calculated) = %d Pa\n", imu->slPressure );
     printf("Real altitude = %f meters\n",  imu->r_alt_m);
+    printf("Altitude diff from calibration %f meters\n", (imu->alt_m-imu->c_base_alt) );
+    printf("Avg Altitude diff %f m\n",imu->avgBaro);
 }
 
 
@@ -597,6 +651,7 @@ int main() {
     MasterI2Ccom com = MasterI2Ccom();	//main interface
     com.openi2cBus();                   //open i2c device
     
+    com.startBaroThread();
     
     for (int i =0; i < 10; i++) {
         //read values 10x
@@ -608,19 +663,25 @@ int main() {
         
         ::sleep(1);
     }
+    com.stopBaroThread();
+//    
+//    printf("lets test turning to 100 deg\n");
+//    ::sleep (5);
+//    com.rotate(100);
+//    printf("lets test turning to 90 deg\n");
+//    ::sleep(1);
+//    com.rotate(90);
+//    printf ("lets test turning to 180 deg\n");
+//    ::sleep(1);
+//    com.rotate(180);
+//    printf ("lets test turning to 0 deg\n");
+//    ::sleep(1);
+//    com.rotate(0);
     
-    printf("lets test turning to 100 deg\n");
-    ::sleep (5);
-    com.rotate(100);
-    printf("lets test turning to 90 deg\n");
-    ::sleep(1);
-    com.rotate(90);
-    printf ("lets test turning to 180 deg\n");
-    ::sleep(1);
-    com.rotate(180);
-    printf ("lets test turning to 0 deg\n");
-    ::sleep(1);
-    com.rotate(0);
+    //trying continous reading
+//    com.startBaroThread();
+//    ::sleep(10); //trying reading for 10 seconds
+//    com.stopBaroThread();
     
     
     printf("closing\n");

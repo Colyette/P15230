@@ -11,6 +11,7 @@
 //headers
 #include <string>
 #include <stdint.h>
+#include <pthread.h>    //for threading
 #include "sharedi2cCom.h"
 #include "IMU.h"
 
@@ -29,9 +30,9 @@ public:
 	MasterI2Ccom();
 
 	/**
-         * Destructor
-         * 
-         */
+     * Destructor
+     * 
+     */
 	~MasterI2Ccom();
 	
 	/**
@@ -48,6 +49,21 @@ public:
 	 * \brief requests a sonar packet from sonar slave Arduino
 	 */
 	int requestSonar();
+    
+    /**
+     * \brief continously reads baro values
+     */
+    void continousBaroReading();
+    
+    /**
+     * \brief starts the baro thread
+     */
+    int startBaroThread();
+    
+    /**
+     * \brief stops the baro thread
+     */
+    void stopBaroThread();
     
     //TEsting functs
     void reqAndprintAccelerameterData();
@@ -102,6 +118,15 @@ private:
 
     //soley the direction the copter is facing currently
     double current_orientation;
+    
+    //some variable
+    int runBaro; //variable
+    
+    //thread for running the continous baro readings
+    pthread_t baroThread;
+    
+    //mutex for device hangle
+    pthread_mutex_t dev_handle_mutex;
 
 };
 #endif //MASTER_I2C_COM

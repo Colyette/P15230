@@ -7,13 +7,15 @@ IMU::IMU(){
     printf("default IMU contructor\n");
 }
 
-IMU::IMU(int e_i2c_bus_handler) {
+IMU::IMU(int e_i2c_bus_handler,pthread_mutex_t* e_dev_handle_mutex ) {
     dev_handle = e_i2c_bus_handler;
     printf("Created IMU module with dev handler\n");
+    dev_handle_mutex_ptr = e_dev_handle_mutex;
     
     //TODO init LSM303 Module
     //com_acc = Adafruit_LSM303();        //init LSM303 class Module
     com_acc.set_dev_handle(dev_handle); // pass dev handle
+    com_acc.set_dev_mutex(dev_handle_mutex_ptr);//pass dev handle mutex pointer
     if ( com_acc.begin() ) {
         printf("LSM303 module configured\n");
     }else {
@@ -22,8 +24,10 @@ IMU::IMU(int e_i2c_bus_handler) {
     
     //TODO init SFE_BMP180
     baro.set_dev_handle(dev_handle); //pass dev handle
+    baro.set_dev_mutex(dev_handle_mutex_ptr); //pass the dev handle mutex pointer
     if (baro.begin()) {
         printf("BMP180 module configued\n");
+        c_base_alt = baro.base_alt;
     } else {
         printf("Couldn't configure BMP180\n");
     }
@@ -65,7 +69,7 @@ int IMU::getCompassValues(){
 }
 
 int IMU::getAltitude(){
-    printf("Temperature = %f *C\n",baro.readTemperature());
+   // printf("Temperature = %f *C\n",baro.readTemperature());
     
     
 //    Serial.print("Pressure = ");
