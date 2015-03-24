@@ -140,6 +140,12 @@ int MasterI2Ccom::requestSonar(){
 
 	printf("requestSonar:: Requested packet\n");
 
+    //LOCK~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    if (pthread_mutex_lock(&dev_handle_mutex) ){
+        printf("MasterI2Ccom::requestSonar: Error locking thread\n");
+        return (-1);
+    }
+    
 	//point to sonar slave
 	if( ioctl( dev_handle, I2C_SLAVE, sonarArduinoAdd ) < 0 ){
 		err = errno ;
@@ -160,6 +166,11 @@ int MasterI2Ccom::requestSonar(){
                 return -1;
 	}
 
+    //UNLOCK~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    if (pthread_mutex_unlock( &dev_handle_mutex) ) {
+        printf("MasterI2Ccom::requestSonar: Error unlocking thread\n");
+        return (-1);
+    }
 
     //	printf("buff: 0x%x 0x%x 0x%x 0x%x 0x%x \n", mbuff[0], mbuff[1], mbuff[2], mbuff[3],mbuff[4]);
     //	printf("packet: 0x%d 0x%d 0x%d 0x%d 0x%d \n", rPkt.header, rPkt.sonar1, rPkt.sonar2, rPkt.sonar3,rPkt.sonar4);
@@ -212,6 +223,12 @@ int MasterI2Ccom::sendPPM(ReqPkt* rPkt){
 	//ReqPkt rPkt;
     int err,rec;
 
+    //LOCK~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    if (pthread_mutex_lock(&dev_handle_mutex) ){
+        printf("MasterI2Ccom::sendPPM: Error locking thread\n");
+        return (-1);
+    }
+    
     //point to sonar slave
     if( ioctl( dev_handle, I2C_SLAVE, ppmArduinoAdd) < 0 ){
             err = errno ;
@@ -230,6 +247,11 @@ int MasterI2Ccom::sendPPM(ReqPkt* rPkt){
             err = errno ;
             printf("sendPPM:: Couldn't get flight request packet reply: errno %d rec: %d\n",err,rec);
             return -1;
+    }
+    //UNLOCK~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    if (pthread_mutex_unlock( &dev_handle_mutex) ) {
+        printf("MasterI2Ccom::requestSonar: Error unlocking thread\n");
+        return (-1);
     }
 
     printf ("header #:%d, throttle:%u, yaw:%u, pitch:%u, roll:%u\n", rPkt->header, rPkt->throttle,
