@@ -85,7 +85,7 @@ bool Adafruit_BMP085::begin(uint8_t mode) {
     Serial.print("mc = "); Serial.println(mc, DEC);
     Serial.print("md = "); Serial.println(md, DEC);
 #endif
-    
+    //TODO need to take multiple samples for median filtering
     base_alt = readAltitude(); //TODO may have to manually alter
     printf("base_line altitude set as %f meters\n",base_alt);
     return true;

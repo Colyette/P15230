@@ -19,9 +19,11 @@
 #include "sharedi2cCom.h" 
 #include "ADXL345.h"    //accelerameter lib
 
-#define NUM_SAMPLES (5)
-
-
+#define NUM_SAMPLES (10)
+//#define AVERAGE
+/**
+ * \brief serves as a helper function for multi-threading within the same class instance
+ */
 void * BarometerHelper(void* instance) {
     MasterI2Ccom* c_instance = (MasterI2Ccom*) instance;
     printf("BarometerThread: Going into continous reading function\n");
@@ -29,19 +31,26 @@ void * BarometerHelper(void* instance) {
     return 0 ;
 }
 
+/**
+ * \brief continously reads barometer data, and selects the candidate reading
+ * from every 10 samples
+ */
 void MasterI2Ccom::continousBaroReading(){
-    float lastValues[5];
+    float lastValues[NUM_SAMPLES];
     float ravg;
     int count=0;
     int i;
+    bool swapped; // for sorting
+    int n = NUM_SAMPLES; //for values to go through in to be sorted
+    float temp; //temp for swapping in sortings
     
     while(runBaro){
-        
         imu -> getAltitude(); //Updates class variables
         lastValues[count] = (imu->alt_m-imu->c_base_alt);
-        //printf("[%d]got %fm\n",count,lastValues[count]);
+        printf("[%d]got %fm\n",count,lastValues[count]);
         count++;
         if(count == NUM_SAMPLES ){
+#ifdef  AVERAGE
           //  printf("calc avg\n");
             ravg = 0;
             for (i =0; i<NUM_SAMPLES;i++) {
@@ -49,6 +58,25 @@ void MasterI2Ccom::continousBaroReading(){
             }
             imu->avgBaro = ravg/NUM_SAMPLES;
             //printf("Avg:%f meter diff\n",imu->avgBaro);
+#else
+      //using median filtering
+            //order using bubble sort to sort
+            do {
+                swapped = false;
+                for(i = 1; i<=n-1; i++){
+                    if (lastValues[i-1] > lastValues[i]) { //then swap
+                        temp = lastValues[i];
+                        lastValues[i] = lastValues[i-1];
+                        lastValues[i-1] = temp;
+                        swapped = true;
+                    }// else we hadn't swapped this round
+                }
+                n= n-1;
+            } while (!swapped);
+            //get median value
+            imu->avgBaro = lastValues[(int)ceil(NUM_SAMPLES/2.0)];
+            printf("Median:%f meter diff\n",imu->avgBaro);
+#endif
             count =0;
         }
     }
