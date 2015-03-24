@@ -14,7 +14,7 @@
  ***************************************************************************/
 /***
  * \brief Modified to work on Raspberry Pi using Linux's userspace I2C driver
- * \author Alyssa Colyette
+ * \modified by Alyssa Colyette
  */
 
 #include "Adafruit_LSM303.h"

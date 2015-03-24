@@ -12,6 +12,11 @@
   Written by Kevin Townsend for Adafruit Industries.  
   BSD license, all text above must be included in any redistribution
  ***************************************************************************/
+/**
+ * \brief edited for using linux userspace i2c driver for RPi
+ * \modified by Alyssa Colyette
+ */
+
 #ifndef __LSM303_H__
 #define __LSM303_H__
 

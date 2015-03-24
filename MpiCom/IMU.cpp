@@ -1,5 +1,9 @@
-
-
+/**
+ * \file IMU.cpp
+ * \brief The IMU interface with separate drivers per
+ * i2c addressed component
+ * \author Alyssa Colyette
+ */
 #include "IMU.h"
 #include <stdio.h>
 #include <math.h> // for heading calculations
@@ -7,31 +11,41 @@ IMU::IMU(){
     printf("default IMU contructor\n");
 }
 
+/**
+ * \brief starts all of the modules
+ */
 IMU::IMU(int e_i2c_bus_handler,pthread_mutex_t* e_dev_handle_mutex ) {
     dev_handle = e_i2c_bus_handler;
-    printf("Created IMU module with dev handler\n");
+    printf("IMU::IMU: Created IMU module with dev handler\n");
     dev_handle_mutex_ptr = e_dev_handle_mutex;
     
-    //TODO init LSM303 Module
-    //com_acc = Adafruit_LSM303();        //init LSM303 class Module
+    //LSM303 Module module setup
     com_acc.set_dev_handle(dev_handle); // pass dev handle
     com_acc.set_dev_mutex(dev_handle_mutex_ptr);//pass dev handle mutex pointer
     if ( com_acc.begin() ) {
-        printf("LSM303 module configured\n");
+        printf("IMU::IMU: LSM303 module configured\n");
     }else {
-        printf("Couldn't configure LSM303\n");
+        printf("IMU::IMU: Couldn't configure LSM303\n");
     }
     
-    //TODO init SFE_BMP180
+    //Baro module setup
     baro.set_dev_handle(dev_handle); //pass dev handle
     baro.set_dev_mutex(dev_handle_mutex_ptr); //pass the dev handle mutex pointer
     if (baro.begin()) {
-        printf("BMP180 module configued\n");
+        printf("IMU::IMU: BMP180 module configued\n");
         c_base_alt = baro.base_alt;
     } else {
-        printf("Couldn't configure BMP180\n");
+        printf("IMU::IMU: Couldn't configure BMP180\n");
     }
     
+    //Gyro module setup
+    gyro.set_dev_handle(dev_handle); //pass dev handle
+    gyro.set_dev_mutex(dev_handle_mutex_ptr); //pass the dev handle mutex pointer
+    if (gyro.begin()) {
+        printf("IMU::IMU: L3GD20 module configued\n");
+    } else {
+        printf("IMU::IMU: Couldn't configure L3GD20\n");
+    }
 }
 
 IMU::~IMU(){
@@ -105,5 +119,13 @@ int IMU::getAltitude(){
     //Serial.println();
     //delay(500);
     
+    return 1;
+}
+
+int IMU::getGryoValues(){
+    gyro.read();
+    g_x = gyro.data.x;
+    g_y = gyro.data.y;
+    g_z = gyro.data.z;
     return 1;
 }

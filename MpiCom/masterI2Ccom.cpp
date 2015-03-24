@@ -1,7 +1,7 @@
 /*
  *
  * @file masterI2Ccom.cpp
- * @brief  reads i2c packets from slave Arduino devices
+ * @brief  reads i2c packets from slave Arduino devices and IMU sensor
  * @author Alyssa Colyette
  *
  */
@@ -209,6 +209,10 @@ void MasterI2Ccom::reqAndprintBarometerData() {
     printf("Avg Altitude diff %f m\n",imu->avgBaro);
 }
 
+void MasterI2Ccom::reqAndprintGyrometerData() {
+    imu->getGryoValues();
+    printf("Gyro values:\nx:%f\ty:%f\tz:%f\n", imu->g_x,imu->g_y, imu->g_z);
+}
 
 //##########################
 
@@ -681,6 +685,8 @@ int main() {
         com.reqAndprintCompassData();
         printf("\n");
         com.reqAndprintBarometerData();
+        printf("\n");
+        com.reqAndprintGyrometerData();
         printf("\n\n");
         
         ::sleep(1);

@@ -17,7 +17,7 @@
 /**
  * \brief Same driver for BMP180, the interface. Modified for using on
  *          Raspberry Pi's linux i2c driver
- *
+ * \modified by Alyssa Colyette
  */
 
 #ifndef ADAFRUIT_BMP085_H

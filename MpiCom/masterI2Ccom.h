@@ -1,7 +1,7 @@
 /*
  *
  * @file masterI2Ccom.h
- * @brief  reads i2c packets from slave Arduino devices
+ * @brief  reads i2c packets from slave Arduino devices and IMU sensor
  * @author Alyssa Colyette
  *
  */
@@ -69,6 +69,7 @@ public:
     void reqAndprintAccelerameterData();
     void reqAndprintCompassData();
     void reqAndprintBarometerData();
+    void reqAndprintGyrometerData();
 	
 	/**
      * \brief lifts the craft from initial takeoff

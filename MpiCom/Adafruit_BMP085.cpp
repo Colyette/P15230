@@ -14,7 +14,10 @@
  Written by Limor Fried/Ladyada for Adafruit Industries.
  BSD license, all text above must be included in any redistribution
  ****************************************************/
-
+/**
+ * \brief edited for using linux userspace i2c driver for RPi
+ * \modified by Alyssa Colyette
+ */
 #include "Adafruit_BMP085.h"
 #include <stdio.h>
 #include <linux/i2c-dev.h>  //linux userspace I2C driver
@@ -402,4 +405,5 @@ uint8_t Adafruit_BMP085::write8(uint8_t a, uint8_t d) {
         printf("ADXL345::writeRegister:Error unlocking thread\n");
         return (-1);
     }
+    return 1;
 }
