@@ -379,61 +379,118 @@ int MasterI2Ccom::rotate(double deg ){
     pkt.pitch = 0;
     pkt.roll =0;
     //assuming measurement already taken
-    cur_pos= imu->heading;
-    rChoice = cur_pos + deg;
-    if (rChoice >= 360) {
-        rChoice= rChoice -360; //account for range
-    }
-    lChoice = cur_pos - deg;
-    if (lChoice < 0) {
-        lChoice = lChoice+360;
-    }
-    //TODO take sample
-    int setPos = deg; //TODO maybe plus
-    wiggleL = setPos -2.5;
-    if ( wiggleL <0) {
-        wiggleL = wiggleL+360;
-    }
-    wiggleR = setPos +2.5;
-    if ( wiggleR >=360){
-        wiggleR = wiggleR -360;
-    }
-    
-    while (cur_pos != setPos) { //allowing some wiggle room
-        
-        if ( (wiggleR >= cur_pos) && (wiggleL <= cur_pos)  ) { //good enough [+/- 2.5deg var]
-            //TODO test wiggle, send ppm for att hold
-            pkt.header = STOP;
-            pkt.yaw = 1000; //stop rotation
-            //sendPPM(&pkt);
-            printf("THERE\n");
-            return 1;
-        } else if ( lChoice < rChoice ) { //turn left
-            pkt.header = LEFT;
-            pkt.yaw = 0; // going cc
-            //sendPPM(&pkt);
-            printf("GO LEFT\n");
-            
-        } else if( lChoice > rChoice) { //turn right
+//    cur_pos= imu->heading;
+//    rChoice = cur_pos + deg;
+//    if (rChoice >= 360) {
+//        rChoice= rChoice -360; //account for range
+//    }
+//    lChoice = cur_pos - deg;
+//    if (lChoice < 0) {
+//        lChoice = lChoice+360;
+//    }
+//    //TODO take sample
+//    int setPos = deg; //TODO maybe plus
+//    wiggleL = setPos -2.5;
+//    if ( wiggleL <0) {
+//        wiggleL = wiggleL+360;
+//    }
+//    wiggleR = setPos +2.5;
+//    if ( wiggleR >=360){
+//        wiggleR = wiggleR -360;
+//    }
+//    
+//    while (cur_pos != setPos) { //allowing some wiggle room
+//        
+//        if ( (wiggleR >= cur_pos) && (wiggleL <= cur_pos)  ) { //good enough [+/- 2.5deg var]
+//            //TODO test wiggle, send ppm for att hold
+//            pkt.header = STOP;
+//            pkt.yaw = 1000; //stop rotation
+//            //sendPPM(&pkt);
+//            printf("THERE\n");
+//            return 1;
+//        } else if ( lChoice < rChoice ) { //turn left
+//            pkt.header = LEFT;
+//            pkt.yaw = 0; // going cc
+//            //sendPPM(&pkt);
+//            printf("GO LEFT\n");
+//            
+//        } else if( lChoice > rChoice) { //turn right
+//            pkt.header = RIGHT;
+//            pkt.yaw = 2000;
+//            //sendPPM(&pkt);
+//            printf("GO RIGHT\n");
+//        }
+//            
+//        //TODO take new sample
+//        imu -> getCompassValues();
+//        cur_pos = imu->heading;
+//        rChoice = cur_pos + deg;
+//        if (rChoice >= 360) {
+//            rChoice= rChoice -360; //account for range
+//        }
+//        lChoice = cur_pos - deg;
+//        if (lChoice < 0) {
+//            lChoice = lChoice+360;
+//        }
+//        ::sleep(1); // not realiable for real time.. I think (time to actualize held command)
+//    }
+
+    //Trying rotate again
+    //suppose cur =0 then,
+    float s_SP;
+    wiggleR = deg + 2.5;
+    wiggleL = deg - 2.5;
+    do{
+    imu -> getCompassValues();
+        cur_pos = imu->heading;
+        s_SP = deg - cur_pos; //current offset
+        //s_SP = cur_pos-deg;
+    if ( (wiggleR >= cur_pos) && (wiggleL <= cur_pos)  ) { //good enough [+/- 2.5deg var]{
+        //TODO test wiggle, send ppm for att hold
+        pkt.header = STOP;
+        pkt.yaw = 1000; //stop rotation
+        //sendPPM(&pkt);
+        printf("THERE\n");
+        return 1;
+     } else if (s_SP >=0) {
+         if (s_SP >180) {
+             //got left
+             pkt.header = LEFT;
+             pkt.yaw = 0; // going cc
+             //sendPPM(&pkt);
+             printf("GO LEFT\n");
+             printf("s_SP:%f\n",s_SP);
+             printf("cur:%f\n",cur_pos);
+         }else {
+            //go right
+             pkt.header = RIGHT;
+             pkt.yaw = 2000;
+             //sendPPM(&pkt);
+             printf("GO RIGHT\n");
+             printf("s_SP:%f\n",s_SP);
+             printf("cur:%f\n",cur_pos);
+         }
+    }else {
+        if (s_SP < -180) {
+            //go right
             pkt.header = RIGHT;
             pkt.yaw = 2000;
             //sendPPM(&pkt);
             printf("GO RIGHT\n");
+            printf("s_SP:%f\n",s_SP);
+            printf("cur:%f\n",cur_pos);
+        } else {
+        //go left
+            pkt.header = LEFT;
+            pkt.yaw = 0; // going cc
+            //sendPPM(&pkt);
+            printf("GO LEFT\n");
+            printf("s_SP:%f\n",s_SP);
+            printf("cur:%f\n",cur_pos);
         }
-            
-        //TODO take new sample
-        imu -> getCompassValues();
-        cur_pos = imu->heading;
-        rChoice = cur_pos + deg;
-        if (rChoice >= 360) {
-            rChoice= rChoice -360; //account for range
-        }
-        lChoice = cur_pos - deg;
-        if (lChoice < 0) {
-            lChoice = lChoice+360;
-        }
-        ::sleep(1); // not realiable for real time.. I think (time to actualize held command)
     }
+    ::sleep(1); // not realiable for real time.. I think (time to actualize held command)
+    }while (cur_pos != s_SP);
     
     //Shouldn't get here...
     return 1;
@@ -705,6 +762,7 @@ int main() {
     MasterI2Ccom com = MasterI2Ccom();	//main interface
     com.openi2cBus();                   //open i2c device
     
+    //TEST THE IMU
     com.startBaroThread();
     
     for (int i =0; i < 10; i++) {
@@ -720,19 +778,20 @@ int main() {
         ::sleep(1);
     }
     com.stopBaroThread();
-//    
-//    printf("lets test turning to 100 deg\n");
-//    ::sleep (5);
-//    com.rotate(100);
-//    printf("lets test turning to 90 deg\n");
-//    ::sleep(1);
-//    com.rotate(90);
-//    printf ("lets test turning to 180 deg\n");
-//    ::sleep(1);
-//    com.rotate(180);
-//    printf ("lets test turning to 0 deg\n");
-//    ::sleep(1);
-//    com.rotate(0);
+    
+    //TEST ROTATION
+    printf("lets test turning to 100 deg\n");
+    ::sleep (5);
+    com.rotate(100);
+    printf("lets test turning to 90 deg\n");
+    ::sleep(1);
+    com.rotate(90);
+    printf ("lets test turning to 180 deg\n");
+    ::sleep(1);
+    com.rotate(180);
+    printf ("lets test turning to 0 deg\n");
+    ::sleep(1);
+    com.rotate(0);
     
     //trying continous reading
 //    com.startBaroThread();
