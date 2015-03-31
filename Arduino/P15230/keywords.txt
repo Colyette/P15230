@@ -7,7 +7,8 @@
 # Datatypes (KEYWORD1)
 #######################################
 
-SonarReqPkt     KEYWORD1
+sharedi2cCom    KEYWORD1
+SonarReqPkt KEYWORD1
 ReqPkt  KEYWORD1
 flight_cmd  KEYWORD1
 sensor_cmd  KEYWORD1
@@ -22,4 +23,4 @@ sensor_cmd  KEYWORD1
 # Constants (LITERAL1)
 #######################################
 
-ppmArduinoAdd  LITERAL1
+ppmArduinoAdd   LITERAL1
