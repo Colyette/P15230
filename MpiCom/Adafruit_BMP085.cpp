@@ -27,6 +27,8 @@
 #include <unistd.h>         //constants for posix compliance
 #include <math.h>           //for calculations
 
+#define NUM_START_SAMPLE (20)
+
 Adafruit_BMP085::Adafruit_BMP085() {
 }
 
@@ -85,8 +87,32 @@ bool Adafruit_BMP085::begin(uint8_t mode) {
     Serial.print("mc = "); Serial.println(mc, DEC);
     Serial.print("md = "); Serial.println(md, DEC);
 #endif
+    
     //TODO need to take multiple samples for median filtering
-    base_alt = readAltitude(); //TODO may have to manually alter
+    float history[NUM_START_SAMPLE];
+    float temp;
+    int i;
+    int n = NUM_START_SAMPLE;
+    bool swapped;
+    for (i=0; i<NUM_START_SAMPLE; i++) {
+        history[i] = readAltitude();
+    }
+    //order list
+    do {
+        swapped = false;
+        for(i = 1; i<=n-1; i++){
+            if (history[i-1] > history[i]) { //then swap
+                temp = history[i];
+                history[i] = history[i-1];
+                history[i-1] = temp;
+                swapped = true;
+            }// else we hadn't swapped this round
+        }
+        n= n-1;
+    } while (!swapped);
+    //get median value
+    base_alt = history[(int)ceil(NUM_START_SAMPLE/2.0)];
+    //base_alt = readAltitude(); //TODO may have to manually alter
     printf("base_line altitude set as %f meters\n",base_alt);
     return true;
 }
