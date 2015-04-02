@@ -24,7 +24,8 @@
 #define __L3GD20_H__
 
 #include <stdint.h>  //for int bit types
-#include <pthread.h>    //for i2c dev mutex
+//#include <pthread.h>    //for i2c dev mutex
+#include <mutex>        //for recursive mutex w/ unique lock
 
 #define L3GD20_ADDRESS                (0x6B)        // 1101011
 #define L3GD20_POLL_TIMEOUT           (100)         // Maximum number of read attempts
@@ -95,7 +96,7 @@ class Adafruit_L3GD20
     void set_dev_handle(int e_dev_handle);
     
     //passed mutex for the dev handle
-    void set_dev_mutex(pthread_mutex_t* dev_handle_mutex);
+    void set_dev_mutex(std::recursive_mutex* dev_handle_mutex);
     
   private:
     uint8_t write8(l3gd20Registers_t reg, uint8_t value);
@@ -109,7 +110,7 @@ class Adafruit_L3GD20
     //dev handle of i2c driver
     int dev_handle;
     //dev handle
-    pthread_mutex_t* dev_handle_mutex_ptr;
+    std::recursive_mutex* dev_handle_mutex_ptr;
 };
 
 #endif

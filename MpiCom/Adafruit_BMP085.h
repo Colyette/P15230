@@ -24,7 +24,8 @@
 #define ADAFRUIT_BMP085_H
 
 #include <stdint.h>  //for int bit types
-#include <pthread.h>    //for i2c dev mutex
+//#include <pthread.h>    //for i2c dev mutex
+#include <mutex>        //for recursive mutex w/ unique lock
 
 #define BMP085_DEBUG 0
 
@@ -68,7 +69,7 @@ public:
     void set_dev_handle(int e_dev_handle);
     
     //passed mutex for the dev handle
-    void set_dev_mutex(pthread_mutex_t* dev_handle_mutex);
+    void set_dev_mutex(std::recursive_mutex* dev_handle_mutex);
     
     float base_alt;
 private:
@@ -85,7 +86,7 @@ private:
     //dev handle of i2c driver
     int dev_handle;
     //dev handle
-    pthread_mutex_t* dev_handle_mutex_ptr;
+    std::recursive_mutex* dev_handle_mutex_ptr;
 };
 
 

@@ -12,6 +12,7 @@
 #include <string>
 #include <stdint.h>
 #include <pthread.h>    //for threading
+#include <mutex>        //for recursive mutex
 #include "sharedi2cCom.h"
 #include "IMU.h"
 
@@ -127,7 +128,7 @@ private:
     pthread_t baroThread;
     
     //mutex for device hangle
-    pthread_mutex_t dev_handle_mutex;
+    static std::recursive_mutex dev_handle_mutex;
 
 };
 #endif //MASTER_I2C_COM

@@ -57,7 +57,7 @@ void Adafruit_L3GD20::set_dev_handle(int e_dev_handle){
 /**
  * \brief passed mutex for the dev handle
  */
-void Adafruit_L3GD20::set_dev_mutex(pthread_mutex_t* e_dev_handle_mutex){
+void Adafruit_L3GD20::set_dev_mutex(std::recursive_mutex* e_dev_handle_mutex){
     dev_handle_mutex_ptr = e_dev_handle_mutex;
 }
 
@@ -263,10 +263,11 @@ uint8_t Adafruit_L3GD20::write8(l3gd20Registers_t reg, uint8_t value)
 //    Wire.endTransmission();
       
       //LOCK~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-      if (pthread_mutex_lock(dev_handle_mutex_ptr) ){
-          printf("Adafruit_L3GD20::write8: Error locking thread\n");
-          return (-1);
-      }
+//      if (pthread_mutex_lock(dev_handle_mutex_ptr) ){
+//          printf("Adafruit_L3GD20::write8: Error locking thread\n");
+//          return (-1);
+//      }
+      std::unique_lock<std::recursive_mutex> lck(*dev_handle_mutex_ptr);
       
       //Wire.beginTransmission(BMP085_I2CADDR); // start transmission to device
       if( ioctl( dev_handle, I2C_SLAVE, address) < 0 ){
@@ -282,11 +283,11 @@ uint8_t Adafruit_L3GD20::write8(l3gd20Registers_t reg, uint8_t value)
           return (-1);
       }
       //UNLOCK~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-      if (pthread_mutex_unlock( dev_handle_mutex_ptr) ) {
-          printf("Adafruit_L3GD20::write8:Error unlocking thread\n");
-          return (-1);
-      }
-
+//      if (pthread_mutex_unlock( dev_handle_mutex_ptr) ) {
+//          printf("Adafruit_L3GD20::write8:Error unlocking thread\n");
+//          return (-1);
+//      }
+//
   } else {
       printf("Adafruit_L3GD20::write8: SPI mode not enabled\n");
       return (-1);
@@ -318,10 +319,11 @@ uint8_t Adafruit_L3GD20::read8(l3gd20Registers_t reg)
 //    Wire.endTransmission();
       
       //LOCK
-      if (pthread_mutex_lock(dev_handle_mutex_ptr) ){
-          printf("Adafruit_L3GD20::read8: Error locking thread\n");
-          return (-1);
-      }
+//      if (pthread_mutex_lock(dev_handle_mutex_ptr) ){
+//          printf("Adafruit_L3GD20::read8: Error locking thread\n");
+//          return (-1);
+//      }
+      std::unique_lock<std::recursive_mutex> lck(*dev_handle_mutex_ptr);
       
       if( ioctl( dev_handle, I2C_SLAVE, address) < 0 ){
           err = errno ;
@@ -343,10 +345,10 @@ uint8_t Adafruit_L3GD20::read8(l3gd20Registers_t reg)
       ret = buffer[0];
       
       //UNLOCK~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-      if (pthread_mutex_unlock( dev_handle_mutex_ptr) ) {
-          printf("Adafruit_L3GD20::read8: Error unlocking thread\n");
-          return (-1);
-      }
+//      if (pthread_mutex_unlock( dev_handle_mutex_ptr) ) {
+//          printf("Adafruit_L3GD20::read8: Error unlocking thread\n");
+//          return (-1);
+//      }
       
 
   } else {
@@ -381,10 +383,11 @@ bool Adafruit_L3GD20::readBytes(uint8_t address, uint8_t reg, uint8_t* buffer, u
     //uint8_t ret; //return value
     
     //LOCK~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    if (pthread_mutex_lock(dev_handle_mutex_ptr) ){
-        printf("Adafruit_L3GD20::readBytes: Error locking thread\n");
-        return (-1);
-    }
+//    if (pthread_mutex_lock(dev_handle_mutex_ptr) ){
+//        printf("Adafruit_L3GD20::readBytes: Error locking thread\n");
+//        return (-1);
+//    }
+    std::unique_lock<std::recursive_mutex> lck(*dev_handle_mutex_ptr);
     
     //Wire.beginTransmission(address);
     if( ioctl( dev_handle, I2C_SLAVE, address) < 0 ){
@@ -407,10 +410,10 @@ bool Adafruit_L3GD20::readBytes(uint8_t address, uint8_t reg, uint8_t* buffer, u
     }
     
     //UNLOCK~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    if (pthread_mutex_unlock( dev_handle_mutex_ptr) ) {
-        printf("Adafruit_L3GD20::readBytes: Error unlocking thread\n");
-        return (-1);
-    }
+//    if (pthread_mutex_unlock( dev_handle_mutex_ptr) ) {
+//        printf("Adafruit_L3GD20::readBytes: Error unlocking thread\n");
+//        return (-1);
+//    }
     
     //Wire.endTransmission();
     return true;

@@ -14,7 +14,7 @@ IMU::IMU(){
 /**
  * \brief starts all of the modules
  */
-IMU::IMU(int e_i2c_bus_handler,pthread_mutex_t* e_dev_handle_mutex ) {
+IMU::IMU(int e_i2c_bus_handler,std::recursive_mutex* e_dev_handle_mutex ) {
     dev_handle = e_i2c_bus_handler;
     printf("IMU::IMU: Created IMU module with dev handler\n");
     dev_handle_mutex_ptr = e_dev_handle_mutex;

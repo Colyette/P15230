@@ -27,7 +27,7 @@
 #include <unistd.h>         //constants for posix compliance
 #include <math.h>           //for calculations
 
-#define NUM_START_SAMPLE (20)
+#define NUM_START_SAMPLE (20) //number of samples to take for establishing starting altitude
 
 Adafruit_BMP085::Adafruit_BMP085() {
 }
@@ -42,7 +42,7 @@ void Adafruit_BMP085::set_dev_handle(int e_dev_handle){
 /**
  * \brief passed mutex for the dev handle
  */
-void Adafruit_BMP085::set_dev_mutex(pthread_mutex_t* e_dev_handle_mutex){
+void Adafruit_BMP085::set_dev_mutex(std::recursive_mutex* e_dev_handle_mutex){
     dev_handle_mutex_ptr = e_dev_handle_mutex;
 }
 
@@ -299,10 +299,11 @@ uint8_t Adafruit_BMP085::read8(uint8_t a) {
     buffer[0] =a;
     
     //LOCK
-    if (pthread_mutex_lock(dev_handle_mutex_ptr) ){
-        printf("Adafruit_BMP085::read8: Error locking thread\n");
-        return (-1);
-    }
+//    if (pthread_mutex_lock(dev_handle_mutex_ptr) ){
+//        printf("Adafruit_BMP085::read8: Error locking thread\n");
+//        return (-1);
+//    }
+    std::unique_lock<std::recursive_mutex> lck(*dev_handle_mutex_ptr);
     
     //Wire.beginTransmission(BMP085_I2CADDR); // start transmission to device
     if( ioctl( dev_handle, I2C_SLAVE, BMP085_I2CADDR) < 0 ){
@@ -339,10 +340,10 @@ uint8_t Adafruit_BMP085::read8(uint8_t a) {
     ret = buffer[0];
     
     //UNLOCK~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    if (pthread_mutex_unlock( dev_handle_mutex_ptr) ) {
-        printf("Adafruit_BMP085::read8: Error unlocking thread\n");
-        return (-1);
-    }
+//    if (pthread_mutex_unlock( dev_handle_mutex_ptr) ) {
+//        printf("Adafruit_BMP085::read8: Error unlocking thread\n");
+//        return (-1);
+//    }
     return ret;
 }
 
@@ -358,10 +359,11 @@ uint16_t Adafruit_BMP085::read16(uint8_t a) {
     buffer[0] =a;
     
     //LOCK~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    if (pthread_mutex_lock(dev_handle_mutex_ptr) ){
-        printf("Adafruit_BMP085::read16:Error locking thread\n");
-        return (-1);
-    }
+//    if (pthread_mutex_lock(dev_handle_mutex_ptr) ){
+//        printf("Adafruit_BMP085::read16:Error locking thread\n");
+//        return (-1);
+//    }
+    std::unique_lock<std::recursive_mutex> lck(*dev_handle_mutex_ptr);
     
     if( ioctl( dev_handle, I2C_SLAVE, BMP085_I2CADDR) < 0 ){
         err = errno ;
@@ -382,10 +384,10 @@ uint16_t Adafruit_BMP085::read16(uint8_t a) {
     }
     
     //UNLOCK~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    if (pthread_mutex_unlock( dev_handle_mutex_ptr) ) {
-        printf("Adafruit_BMP085::read16: Error unlocking thread\n");
-        return (-1);
-    }
+//    if (pthread_mutex_unlock( dev_handle_mutex_ptr) ) {
+//        printf("Adafruit_BMP085::read16: Error unlocking thread\n");
+//        return (-1);
+//    }
     
     //MSB is first
     ret = ( (buffer[0]<<8) | buffer[1] );
@@ -404,10 +406,11 @@ uint8_t Adafruit_BMP085::write8(uint8_t a, uint8_t d) {
     uint8_t buffer[2];
     
     //LOCK~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    if (pthread_mutex_lock(dev_handle_mutex_ptr) ){
-        printf("ADXL345::writeRegister:Error locking thread\n");
-        return (-1);
-    }
+//    if (pthread_mutex_lock(dev_handle_mutex_ptr) ){
+//        printf("ADXL345::writeRegister:Error locking thread\n");
+//        return (-1);
+//    }
+    std::unique_lock<std::recursive_mutex> lck(*dev_handle_mutex_ptr);
     
     //Wire.beginTransmission(BMP085_I2CADDR); // start transmission to device
     if( ioctl( dev_handle, I2C_SLAVE, BMP085_I2CADDR) < 0 ){
@@ -427,9 +430,9 @@ uint8_t Adafruit_BMP085::write8(uint8_t a, uint8_t d) {
         return false;
     }
     //UNLOCK~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    if (pthread_mutex_unlock( dev_handle_mutex_ptr) ) {
-        printf("ADXL345::writeRegister:Error unlocking thread\n");
-        return (-1);
-    }
+//    if (pthread_mutex_unlock( dev_handle_mutex_ptr) ) {
+//        printf("ADXL345::writeRegister:Error unlocking thread\n");
+//        return (-1);
+//    }
     return 1;
 }

@@ -19,7 +19,7 @@
 #include "sharedi2cCom.h" 
 #include "ADXL345.h"    //accelerameter lib
 
-#define NUM_SAMPLES (10)
+#define NUM_SAMPLES (10) //number of samples to take before selecting median
 //#define AVERAGE
 /**
  * \brief serves as a helper function for multi-threading within the same class instance
@@ -30,6 +30,8 @@ void * BarometerHelper(void* instance) {
     c_instance->continousBaroReading(); //casted to instantiated class and run main thread funct
     return 0 ;
 }
+
+std::recursive_mutex MasterI2Ccom::dev_handle_mutex;
 
 /**
  * \brief continously reads barometer data, and selects the candidate reading
@@ -47,7 +49,7 @@ void MasterI2Ccom::continousBaroReading(){
     while(runBaro){
         imu -> getAltitude(); //Updates class variables
         lastValues[count] = (imu->alt_m-imu->c_base_alt);
-        printf("[%d]got %fm\n",count,lastValues[count]);
+       // printf("[%d]got %fm\n",count,lastValues[count]);
         count++;
         if(count == NUM_SAMPLES ){
 #ifdef  AVERAGE
@@ -75,10 +77,10 @@ void MasterI2Ccom::continousBaroReading(){
             } while (!swapped);
             //get median value
             imu->avgBaro = lastValues[(int)ceil(NUM_SAMPLES/2.0)];
-            printf("Median:%f meter diff\n",imu->avgBaro);
+            //printf("Median:%f meter diff\n",imu->avgBaro); would be bad for mult threading
 #endif
             count =0;
-        }
+        } //end of collected samples for filtering
     }
 }
 
@@ -104,7 +106,7 @@ MasterI2Ccom:: MasterI2Ccom(){
 	printf("MasterI2Ccom:: Class initialized \n");
 	dev_handle = -1;
     //dev_handle_mutex = PTHREAD_MUTEX_INITIALIZER;
-    pthread_mutex_init(&dev_handle_mutex,NULL);
+    //pthread_mutex_init(&dev_handle_mutex,NULL);
 }
 
 MasterI2Ccom::~MasterI2Ccom() {
@@ -169,13 +171,14 @@ int MasterI2Ccom::requestSonar(){
 	printf("requestSonar:: Requested packet\n");
 
     //LOCK~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    if (pthread_mutex_lock(&dev_handle_mutex) ){
-        printf("MasterI2Ccom::requestSonar: Error locking thread\n");
-        return (-1);
-    }
+//    if (pthread_mutex_lock(&dev_handle_mutex) ){
+//        printf("MasterI2Ccom::requestSonar: Error locking thread\n");
+//        return (-1);
+//    }
+    std::unique_lock<std::recursive_mutex> lck(dev_handle_mutex);
     
 	//point to sonar slave
-	if( ioctl( dev_handle, I2C_SLAVE, sonarArduinoAdd ) < 0 ){
+	if( ioctl( dev_handle, I2C_SLAVE, ppmArduinoAdd ) < 0 ){
 		err = errno ;
 		printf( "requestSonar:: I2C bus cannot point to Sonar Slave: errno %d \n",err);
 		return 0;
@@ -195,17 +198,17 @@ int MasterI2Ccom::requestSonar(){
 	}
 
     //UNLOCK~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    if (pthread_mutex_unlock( &dev_handle_mutex) ) {
-        printf("MasterI2Ccom::requestSonar: Error unlocking thread\n");
-        return (-1);
-    }
+//    if (pthread_mutex_unlock( &dev_handle_mutex) ) {
+//        printf("MasterI2Ccom::requestSonar: Error unlocking thread\n");
+//        return (-1);
+//    }
 
     //	printf("buff: 0x%x 0x%x 0x%x 0x%x 0x%x \n", mbuff[0], mbuff[1], mbuff[2], mbuff[3],mbuff[4]);
     //	printf("packet: 0x%d 0x%d 0x%d 0x%d 0x%d \n", rPkt.header, rPkt.sonar1, rPkt.sonar2, rPkt.sonar3,rPkt.sonar4);
     printf ("pkt #:%d, s1: %u, s2: %u, s3: %u, s4: %u\n", rPkt.header, rPkt.sonar1, rPkt.sonar2, rPkt.sonar3, rPkt.sonar4);
 
 	//translate to packet, mbuff
-	readData = (mbuff[0] <<24) || (mbuff[1] << 16) || (mbuff[2] <<8 ) || mbuff[3];
+	//readData = (mbuff[0] <<24) || (mbuff[1] << 16) || (mbuff[2] <<8 ) || mbuff[3];
 //	printf("Read 0x%x \n",readData);
 	//printf("bytes: 0x%x%x%x%x \n", mbuff[0], mbuff[1], mbuff[2], mbuff[3]);
 
@@ -256,10 +259,11 @@ int MasterI2Ccom::sendPPM(ReqPkt* rPkt){
     int err,rec;
 
     //LOCK~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    if (pthread_mutex_lock(&dev_handle_mutex) ){
-        printf("MasterI2Ccom::sendPPM: Error locking thread\n");
-        return (-1);
-    }
+//    if (pthread_mutex_lock(&dev_handle_mutex) ){
+//        printf("MasterI2Ccom::sendPPM: Error locking thread\n");
+//        return (-1);
+//    }
+    std::unique_lock<std::recursive_mutex> lck(dev_handle_mutex);
     
     //point to sonar slave
     if( ioctl( dev_handle, I2C_SLAVE, ppmArduinoAdd) < 0 ){
@@ -281,10 +285,10 @@ int MasterI2Ccom::sendPPM(ReqPkt* rPkt){
             return -1;
     }
     //UNLOCK~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    if (pthread_mutex_unlock( &dev_handle_mutex) ) {
-        printf("MasterI2Ccom::requestSonar: Error unlocking thread\n");
-        return (-1);
-    }
+//    if (pthread_mutex_unlock( &dev_handle_mutex) ) {
+//        printf("MasterI2Ccom::requestSonar: Error unlocking thread\n");
+//        return (-1);
+//    }
 
     printf ("header #:%d, throttle:%u, yaw:%u, pitch:%u, roll:%u\n", rPkt->header, rPkt->throttle,
         rPkt->yaw,rPkt->pitch, rPkt->roll);
@@ -510,7 +514,7 @@ int main() {
 
 	//dum pkts
 	ReqPkt rPkt;
-
+    rPkt.altitudeHold = 0; //TODO
 	//open bus
 	com.openi2cBus();
 
@@ -527,7 +531,7 @@ printf("STOP enum:%d\n",STOP);
 */
 
 	while(testFlight) {
-		printf("Options:\n[1]STOP\n[2]FORWARD\n[3]BACK\n[4]LEFT\n[5]RIGHT\n[6]UP\n[7]DOWN\n[8]ORBIT\n[9]quit\n");
+		printf("Options:\n[1]STOP\n[2]FORWARD\n[3]BACK\n[4]LEFT\n[5]RIGHT\n[6]UP\n[7]DOWN\n[8]ORBIT\n[9]quit\n[12]requestPkt\n");
 		scanf("%d", &cmd); //might crash if non int
 printf("got %d\n",cmd);
 		printf("\n");
@@ -679,6 +683,14 @@ printf("got %d\n",cmd);
                                         printf("No pkt :-(\n\n");
                                 }
                                 break;
+            case 12:
+                if (com.requestSonar() ==1) {
+                    printf("Got pkt \\(^_^)/\n\n");
+                }else{
+                    printf("no pkt :-(\n\n");
+                }
+                
+                break;
 			default:
 				printf("Not supported yet\n");
 				break;

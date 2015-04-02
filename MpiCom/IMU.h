@@ -10,14 +10,15 @@
 #include "Adafruit_LSM303.h"    // compass and accelerameter library/interface
 #include "Adafruit_BMP085.h"         // barometer library/interface
 #include "Adafruit_L3GD20.h"    //gyroscop librar/interface
-#include <pthread.h>    //for i2c dev mutex
+//#include <pthread.h>    //for i2c dev mutex
+#include <mutex>        //for recursive mutex w/ unique lock
 
 #define COMPASS_ADDRESS         (0x1E)  //address of compass, same as gy-80
 #define LINEAR_ACCEL_ADDRESS    (0x19)
 
 class IMU {
 public:
-    IMU(int e_i2c_bus_handler,pthread_mutex_t* e_dev_handle_mutex);
+    IMU(int e_i2c_bus_handler,std::recursive_mutex* e_dev_handle_mutex);
     //needs the device handler to access Linux driver's bus
 
     IMU(); //TODO disable the calling of default constructor
@@ -63,7 +64,7 @@ public:
     
 private:
     
-    pthread_mutex_t* dev_handle_mutex_ptr;
+    std::recursive_mutex* dev_handle_mutex_ptr;
     
     int dev_handle; //handler for I2C bus
     

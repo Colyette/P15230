@@ -44,7 +44,7 @@ void Adafruit_LSM303::set_dev_handle(int e_dev_handle){
 /** 
  * \brief passed mutex for the dev handle
  */
-void Adafruit_LSM303::set_dev_mutex(pthread_mutex_t* e_dev_handle_mutex){
+void Adafruit_LSM303::set_dev_mutex(std::recursive_mutex* e_dev_handle_mutex){
     dev_handle_mutex_ptr = e_dev_handle_mutex;
 }
 
@@ -190,11 +190,11 @@ bool Adafruit_LSM303::write8(uint8_t address, uint8_t reg, uint8_t value)
     uint8_t buffer[2];
     
     //LOCK~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    if (pthread_mutex_lock(dev_handle_mutex_ptr) ){
-        printf("ADXL345::writeRegister: Error locking thread\n");
-        return (-1);
-    }
-    
+//    if (pthread_mutex_lock(dev_handle_mutex_ptr) ){
+//        printf("ADXL345::writeRegister: Error locking thread\n");
+//        return (-1);
+//    }
+    std::unique_lock<std::recursive_mutex> lck(*dev_handle_mutex_ptr);
   //Wire.beginTransmission(address);
     if( ioctl( dev_handle, I2C_SLAVE, address) < 0 ){
         err = errno ;
@@ -222,10 +222,10 @@ bool Adafruit_LSM303::write8(uint8_t address, uint8_t reg, uint8_t value)
     }
     */
     //UNLOCK~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    if (pthread_mutex_unlock( dev_handle_mutex_ptr) ) {
-        printf("ADXL345::writeRegister: Error unlocking thread\n");
-        return (-1);
-    }
+//    if (pthread_mutex_unlock( dev_handle_mutex_ptr) ) {
+//        printf("ADXL345::writeRegister: Error unlocking thread\n");
+//        return (-1);
+//    }
   //Wire.endTransmission();
     return true;
 }
@@ -241,11 +241,12 @@ uint8_t Adafruit_LSM303::read8(uint8_t address, uint8_t reg)
     buffer[0] = reg; //assign reg to read from
     
     //LOCK~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    if (pthread_mutex_lock(dev_handle_mutex_ptr) ){
-        printf("ADXL345::read8: Error locking thread\n");
-        return (-1);
-    }
-
+//    if (pthread_mutex_lock(dev_handle_mutex_ptr) ){
+//        printf("ADXL345::read8: Error locking thread\n");
+//        return (-1);
+//    }
+    std::unique_lock<std::recursive_mutex> lck(*dev_handle_mutex_ptr);
+    
   //Wire.beginTransmission(address);
     if( ioctl( dev_handle, I2C_SLAVE, address) < 0 ){
         err = errno ;
@@ -278,10 +279,10 @@ uint8_t Adafruit_LSM303::read8(uint8_t address, uint8_t reg)
 //        return false ;
 //    }
     //UNLOCK~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    if (pthread_mutex_unlock( dev_handle_mutex_ptr) ) {
-        printf("ADXL345::read8: Error unlocking thread\n");
-        return (-1);
-    }
+//    if (pthread_mutex_unlock( dev_handle_mutex_ptr) ) {
+//        printf("ADXL345::read8: Error unlocking thread\n");
+//        return (-1);
+//    }
     
   return buffer[0];
 }
@@ -303,10 +304,11 @@ bool Adafruit_LSM303::readBytes(uint8_t address, uint8_t reg, uint8_t* buffer, u
     //uint8_t ret; //return value
     
     //LOCK~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    if (pthread_mutex_lock(dev_handle_mutex_ptr) ){
-        printf("ADXL345::readBytes: Error locking thread\n");
-        return (-1);
-    }
+//    if (pthread_mutex_lock(dev_handle_mutex_ptr) ){
+//        printf("ADXL345::readBytes: Error locking thread\n");
+//        return (-1);
+//    }
+    std::unique_lock<std::recursive_mutex> lck(*dev_handle_mutex_ptr);
     
     //Wire.beginTransmission(address);
     if( ioctl( dev_handle, I2C_SLAVE, address) < 0 ){
@@ -329,10 +331,10 @@ bool Adafruit_LSM303::readBytes(uint8_t address, uint8_t reg, uint8_t* buffer, u
     }
     
     //UNLOCK~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    if (pthread_mutex_unlock( dev_handle_mutex_ptr) ) {
-        printf("ADXL345::readBytes: Error unlocking thread\n");
-        return (-1);
-    }
+//    if (pthread_mutex_unlock( dev_handle_mutex_ptr) ) {
+//        printf("ADXL345::readBytes: Error unlocking thread\n");
+//        return (-1);
+//    }
     
     //Wire.endTransmission();
     return true;
