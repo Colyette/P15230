@@ -49,7 +49,7 @@ void MasterI2Ccom::continousBaroReading(){
     while(runBaro){
         imu -> getAltitude(); //Updates class variables
         lastValues[count] = (imu->alt_m-imu->c_base_alt);
-       // printf("[%d]got %fm\n",count,lastValues[count]);
+        //printf("[%d]got %fm\n",count,lastValues[count]);
         count++;
         if(count == NUM_SAMPLES ){
 #ifdef  AVERAGE
@@ -61,7 +61,7 @@ void MasterI2Ccom::continousBaroReading(){
             imu->avgBaro = ravg/NUM_SAMPLES;
             //printf("Avg:%f meter diff\n",imu->avgBaro);
 #else
-      //using median filtering
+            //using median filtering
             //order using bubble sort to sort
             do {
                 swapped = false;
@@ -169,11 +169,6 @@ int MasterI2Ccom::requestSonar(SonarReqPkt * rPkt){
 
 	printf("requestSonar:: Requested packet\n");
 
-    //LOCK~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-//    if (pthread_mutex_lock(&dev_handle_mutex) ){
-//        printf("MasterI2Ccom::requestSonar: Error locking thread\n");
-//        return (-1);
-//    }
     std::unique_lock<std::recursive_mutex> lck(dev_handle_mutex);
     
 	//point to sonar slave
@@ -195,12 +190,6 @@ int MasterI2Ccom::requestSonar(SonarReqPkt * rPkt){
                 printf("requestSonar:: Couldn't get sonar packet: errno %d rec: %d\n",err,rec);
                 return -1;
 	}
-
-    //UNLOCK~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-//    if (pthread_mutex_unlock( &dev_handle_mutex) ) {
-//        printf("MasterI2Ccom::requestSonar: Error unlocking thread\n");
-//        return (-1);
-//    }
 
     //	printf("buff: 0x%x 0x%x 0x%x 0x%x 0x%x \n", mbuff[0], mbuff[1], mbuff[2], mbuff[3],mbuff[4]);
     //	printf("packet: 0x%d 0x%d 0x%d 0x%d 0x%d \n", rPkt.header, rPkt.sonar1, rPkt.sonar2, rPkt.sonar3,rPkt.sonar4);
@@ -258,12 +247,7 @@ int MasterI2Ccom::sendPPM(ReqPkt* rPkt){
 	//TODO send a pkt to the movement 
 	//ReqPkt rPkt;
     int err,rec;
-
-    //LOCK~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-//    if (pthread_mutex_lock(&dev_handle_mutex) ){
-//        printf("MasterI2Ccom::sendPPM: Error locking thread\n");
-//        return (-1);
-//    }
+    
     std::unique_lock<std::recursive_mutex> lck(dev_handle_mutex);
     
     //point to sonar slave
@@ -285,11 +269,6 @@ int MasterI2Ccom::sendPPM(ReqPkt* rPkt){
             printf("sendPPM:: Couldn't get flight request packet reply: errno %d rec: %d\n",err,rec);
             return -1;
     }
-    //UNLOCK~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-//    if (pthread_mutex_unlock( &dev_handle_mutex) ) {
-//        printf("MasterI2Ccom::requestSonar: Error unlocking thread\n");
-//        return (-1);
-//    }
 
     printf ("header #:%d, throttle:%u, yaw:%u, pitch:%u, roll:%u\n", rPkt->header, rPkt->throttle,
         rPkt->yaw,rPkt->pitch, rPkt->roll);
@@ -518,13 +497,14 @@ printf("STOP enum:%d\n",STOP);
 */
 
 	while(testFlight) {
+        printf("NO predefined testing cmd is actually tested\n");
 		printf("Options:\n[1]STOP\n[2]FORWARD\n[3]BACK\n[4]LEFT\n[5]RIGHT\n[6]UP\n[7]DOWN\n[8]ORBIT\n[9]quit\n[12]requestPkt\n");
 		scanf("%d", &cmd); //might crash if non int
 printf("got %d\n",cmd);
 		printf("\n");
 		//get some packets
 		switch (cmd) {
-			case 1: 
+			case 1: //supposed STOP but hold cmd
 				//STOP
 				/**
 				rPkt.header = STOP;
@@ -534,142 +514,142 @@ printf("got %d\n",cmd);
 				rPkt.roll = 0x80;
 				*/
 				rPkt.header = 0x5DC;
-                                rPkt.throttle = 0x5DC;
-                                rPkt.yaw = 0x5DC;
-                                rPkt.pitch = 0x5DC;
-                                rPkt.roll = 0x5DC;
+                rPkt.throttle = 0x5DC;
+                rPkt.yaw = 0x5DC;
+                rPkt.pitch = 0x5DC;
+                rPkt.roll = 0x5DC;
 				if( com.sendPPM(&rPkt) ==1 ) { 
-                                        printf("Got pkt \\(^_^)/\n\n");
-                                }else{
-                                        printf("No pkt :-(\n\n");
-                                }
+                    printf("Got pkt \\(^_^)/\n\n");
+                }else{
+                    printf("No pkt :-(\n\n");
+                }
 				break;
-			case 2:
+			case 2: //supposed forward cmd
 				//Forward
 				rPkt.header = FORWARD;
-                                rPkt.throttle= 0xFF;
-                                rPkt.yaw = 0x80;
-                                rPkt.pitch=0x80;
-                                rPkt.roll = 0x80;
-				if( com.sendPPM(&rPkt) ==1 ) { 
-                                        printf("Got pkt \\(^_^)/\n\n");
-                                }else{
-                                        printf("No pkt :-(\n\n");
-                                }
+                rPkt.throttle= 0xFF;
+                rPkt.yaw = 0x80;
+                rPkt.pitch=0x80;
+                rPkt.roll = 0x80;
+				if( com.sendPPM(&rPkt) ==1 ) {
+                    printf("Got pkt \\(^_^)/\n\n");
+                }else{
+                    printf("No pkt :-(\n\n");
+                }
 				break;
-			case 3:
+			case 3: //supposed back (not really used)
 				//BACK
-                                rPkt.header = BACK;
-                                rPkt.throttle= 0x00;
-                                rPkt.yaw = 0x80;
-                                rPkt.pitch=0x80;
-                                rPkt.roll = 0x80;
-                                if( com.sendPPM(&rPkt) ==1 ) {
-                                        printf("Got pkt \\(^_^)/\n\n");
-                                }else{
-                                        printf("No pkt :-(\n\n");
-                                }
-                                break;
-			case 4:
+                rPkt.header = BACK;
+                rPkt.throttle= 0x00;
+                rPkt.yaw = 0x80;
+                rPkt.pitch=0x80;
+                rPkt.roll = 0x80;
+                if( com.sendPPM(&rPkt) ==1 ) {
+                    printf("Got pkt \\(^_^)/\n\n");
+                }else{
+                    printf("No pkt :-(\n\n");
+                }
+                break;
+			case 4: // supposed straft left
 				//Straf Left
-                                rPkt.header = LEFT;
-                                rPkt.throttle= 0x80;
-                                rPkt.yaw = 0x80;
-                                rPkt.pitch=0x80;
-                                rPkt.roll = 0x80;
-                                if( com.sendPPM(&rPkt) ==1 ) {
-                                        printf("Got pkt \\(^_^)/\n\n");
-                                }else{
-                                        printf("No pkt :-(\n\n");
-                                }
-                                break;
-			case 5:
+                rPkt.header = LEFT;
+                rPkt.throttle= 0x80;
+                rPkt.yaw = 0x80;
+                rPkt.pitch=0x80;
+                rPkt.roll = 0x80;
+                if( com.sendPPM(&rPkt) ==1 ) {
+                    printf("Got pkt \\(^_^)/\n\n");
+                }else{
+                    printf("No pkt :-(\n\n");
+                }
+                break;
+			case 5: //supposed straf right
 				//Straf Right
-                                rPkt.header = RIGHT;
-                                rPkt.throttle= 0x80;
-                                rPkt.yaw = 0x80;
-                                rPkt.pitch=0x80;
-                                rPkt.roll = 0x80;
-                                if( com.sendPPM(&rPkt) ==1 ) {
-                                        printf("Got pkt \\(^_^)/\n\n");
-                                }else{
-                                        printf("No pkt :-(\n\n");
-                                }
-                                break;
-			case 6:
+                rPkt.header = RIGHT;
+                rPkt.throttle= 0x80;
+                rPkt.yaw = 0x80;
+                rPkt.pitch=0x80;
+                rPkt.roll = 0x80;
+                if( com.sendPPM(&rPkt) ==1 ) {
+                    printf("Got pkt \\(^_^)/\n\n");
+                }else{
+                    printf("No pkt :-(\n\n");
+                }
+                break;
+			case 6: //supposed up cmd
 				//UP
-                                rPkt.header = UP;
-                                rPkt.throttle= 0x80;
-                                rPkt.yaw = 0x80;
-                                rPkt.pitch=0x80;
-                                rPkt.roll = 0x80;
+                rPkt.header = UP;
+                rPkt.throttle= 0x80;
+                rPkt.yaw = 0x80;
+                rPkt.pitch=0x80;
+                rPkt.roll = 0x80;
 
-                                if( com.sendPPM(&rPkt) ==1 ) {
-                                        printf("Got pkt \\(^_^)/\n\n");
-                                }else{
-                                        printf("No pkt :-(\n\n");
-                                }
-                                break;
-			case 7:
+                if( com.sendPPM(&rPkt) ==1 ) {
+                    printf("Got pkt \\(^_^)/\n\n");
+                }else{
+                    printf("No pkt :-(\n\n");
+                }
+                break;
+			case 7: //supposed down cmd..
 				//DOWN
-                                rPkt.header = DOWN;
-                                rPkt.throttle= 0x80;
-                                rPkt.yaw = 0x80;
-                                rPkt.pitch=0x80;
-                                rPkt.roll = 0x80;
+                rPkt.header = DOWN;
+                rPkt.throttle= 0x80;
+                rPkt.yaw = 0x80;
+                rPkt.pitch=0x80;
+                rPkt.roll = 0x80;
 
-                                if( com.sendPPM(&rPkt) ==1 ) {
-                                        printf("Got pkt \\(^_^)/\n\n");
-                                }else{
-                                        printf("No pkt :-(\n\n");
-                                }
-                                break;
-			case 8:
+                if( com.sendPPM(&rPkt) ==1 ) {
+                    printf("Got pkt \\(^_^)/\n\n");
+                }else{
+                    printf("No pkt :-(\n\n");
+                }
+                break;
+			case 8: //supposed orbit cmd
 				//ORBIT
-                                rPkt.header = ORBIT;
-                                rPkt.throttle= 0x80;
-                                rPkt.yaw = 0x80;
-                                rPkt.pitch=0x80;
-                                rPkt.roll = 0x80;
+                rPkt.header = ORBIT;
+                rPkt.throttle= 0x80;
+                rPkt.yaw = 0x80;
+                rPkt.pitch=0x80;
+                rPkt.roll = 0x80;
 
-                                if( com.sendPPM(&rPkt) ==1 ) {
-                                        printf("Got pkt \\(^_^)/\n\n");
-                                }else{
-                                        printf("No pkt :-(\n\n");
-                                }
-                                break;
-			case 9:	
+                if( com.sendPPM(&rPkt) ==1 ) {
+                    printf("Got pkt \\(^_^)/\n\n");
+                }else{
+                    printf("No pkt :-(\n\n");
+                }
+                break;
+			case 9: //quit program
 				printf("Quitting...\n");
 				testFlight =0;
 				break;
-			case 10: 
+			case 10:  //send set ppm pkt
 				rPkt.header = 0x01;
 				printf("throttle:");
 				scanf("%d", &mcmd);
 				rPkt.throttle = mcmd;
 				printf("\nyaw:");
-                                scanf("%d", &mcmd);
+                scanf("%d", &mcmd);
 				rPkt.yaw = mcmd;
 				printf("\npitch:");
-                                scanf("%d", &mcmd);
-                                rPkt.pitch= mcmd;
+                scanf("%d", &mcmd);
+                rPkt.pitch= mcmd;
 				printf("\nroll:");
-                                scanf("%d", &mcmd);
-                                rPkt.roll= mcmd;
-				printf("\n");
-                                if( com.sendPPM(&rPkt) ==1 ) {
-                                        printf("Got pkt \\(^_^)/\n\n");
-                                }else{
-                                        printf("No pkt :-(\n\n");
-                                }
-                                break;
-			case 11:
+                scanf("%d", &mcmd);
+                rPkt.roll= mcmd;
+                printf("\n");
+                if( com.sendPPM(&rPkt) ==1 ) {
+                    printf("Got pkt \\(^_^)/\n\n");
+                }else{
+                    printf("No pkt :-(\n\n");
+                }
+                break;
+			case 11: //resend PPM pkt
 				if( com.sendPPM(&rPkt) ==1 ) {
-                                        printf("Got pkt \\(^_^)/\n\n");
-                                }else{
-                                        printf("No pkt :-(\n\n");
-                                }
-                                break;
+                    printf("Got pkt \\(^_^)/\n\n");
+                }else{
+                    printf("No pkt :-(\n\n");
+                }
+                break;
             case 12:
                 if (com.requestSonar() ==1) {
                     printf("Got pkt \\(^_^)/\n\n");
@@ -779,9 +759,9 @@ int main() {
     //com.stopBaroThread();
     
     //TEST ROTATION
-    printf("lets test turning to 100 deg\n");
-    ::sleep (5);
-    com.rotate(100);
+//    printf("lets test turning to 100 deg\n");
+//    ::sleep (5);
+//    com.rotate(100);
 //    printf("lets test turning to 90 deg\n");
 //    ::sleep(1);
 //    com.rotate(90);
