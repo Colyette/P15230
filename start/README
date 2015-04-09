@@ -1,8 +1,22 @@
-Used to lauch Quad program at button press
-order:
-    1.launch (at reboot registered on cron log)
-    2.buttonPress.py polls until the start button is pressed
-    3.lmnoCopter.sh starts the main program sending output into a timed log
+Programs in this folder are used to lauch Quad program at button press
+
+Details and order:
+    1.launch.sh -runs at reboot of RPi
+        Setup:
+            //open cron settings on pi
+                $sudo crontab -e
+            //make cron log directory in home directory
+                $cd 
+                $ mkdir logs
+            //add line:
+                @reboot sh /home/pi/start/launcher.sh >/home/pi/logs/cronlog 2>&1 
+            //will run the buttonPress.py Python program 
+            // logs errors into director /home/pi/logs/cronlog 
+    2.buttonPress.py -polls until the start button is pressed. Then
+        executes the lmnoCoper.sh script
+    3.lmnoCopter.sh -starts the main program sending output into a timed log
+        directory for program logging is created in the same folder as main 
+        program
 
 TODO
 *reference the main program in lmnoCopter.sh
