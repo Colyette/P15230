@@ -240,11 +240,6 @@ uint8_t Adafruit_LSM303::read8(uint8_t address, uint8_t reg)
     uint8_t buffer[2];
     buffer[0] = reg; //assign reg to read from
     
-    //LOCK~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-//    if (pthread_mutex_lock(dev_handle_mutex_ptr) ){
-//        printf("ADXL345::read8: Error locking thread\n");
-//        return (-1);
-//    }
     std::unique_lock<std::recursive_mutex> lck(*dev_handle_mutex_ptr);
     
   //Wire.beginTransmission(address);
@@ -270,19 +265,6 @@ uint8_t Adafruit_LSM303::read8(uint8_t address, uint8_t reg)
     //value = Wire.read();
     
   //Wire.endTransmission();
-     
-    
-//    reg = reg <<1;
-//    if(	write( dev_handle, &reg, 1 ) != 1 ||
-//       ( rec = ::read( dev_handle, &buffer, 1 )) != 1	){
-//        printf( "ADXL345::read8: reg 0x%x failed, got %d\n", reg, rec ) ;
-//        return false ;
-//    }
-    //UNLOCK~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-//    if (pthread_mutex_unlock( dev_handle_mutex_ptr) ) {
-//        printf("ADXL345::read8: Error unlocking thread\n");
-//        return (-1);
-//    }
     
   return buffer[0];
 }
@@ -301,13 +283,6 @@ bool Adafruit_LSM303::readBytes(uint8_t address, uint8_t reg, uint8_t* buffer, u
     //uint8_t ibuffer= *buffer;
     buffer[0] = reg; // set bit high for multi-byte reading
     
-    //uint8_t ret; //return value
-    
-    //LOCK~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-//    if (pthread_mutex_lock(dev_handle_mutex_ptr) ){
-//        printf("ADXL345::readBytes: Error locking thread\n");
-//        return (-1);
-//    }
     std::unique_lock<std::recursive_mutex> lck(*dev_handle_mutex_ptr);
     
     //Wire.beginTransmission(address);
@@ -329,12 +304,6 @@ bool Adafruit_LSM303::readBytes(uint8_t address, uint8_t reg, uint8_t* buffer, u
         printf("ADXL345::readBytes: Couldn't read from register: errno %d rec: %d\n",err,rec);
         return false;
     }
-    
-    //UNLOCK~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-//    if (pthread_mutex_unlock( dev_handle_mutex_ptr) ) {
-//        printf("ADXL345::readBytes: Error unlocking thread\n");
-//        return (-1);
-//    }
     
     //Wire.endTransmission();
     return true;

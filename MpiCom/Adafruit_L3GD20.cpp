@@ -262,14 +262,9 @@ uint8_t Adafruit_L3GD20::write8(l3gd20Registers_t reg, uint8_t value)
 //    Wire.write(value);
 //    Wire.endTransmission();
       
-      //LOCK~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-//      if (pthread_mutex_lock(dev_handle_mutex_ptr) ){
-//          printf("Adafruit_L3GD20::write8: Error locking thread\n");
-//          return (-1);
-//      }
       std::unique_lock<std::recursive_mutex> lck(*dev_handle_mutex_ptr);
       
-      //Wire.beginTransmission(BMP085_I2CADDR); // start transmission to device
+      // start transmission to device
       if( ioctl( dev_handle, I2C_SLAVE, address) < 0 ){
           err = errno ;
           printf( "Adafruit_L3GD20::write8: I2C bus cannot point to barometer of IMU Slave: errno %d\n",err);
@@ -282,22 +277,10 @@ uint8_t Adafruit_L3GD20::write8(l3gd20Registers_t reg, uint8_t value)
           printf("Adafruit_L3GD20::write8: change write register address: errno %d\n",err);
           return (-1);
       }
-      //UNLOCK~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-//      if (pthread_mutex_unlock( dev_handle_mutex_ptr) ) {
-//          printf("Adafruit_L3GD20::write8:Error unlocking thread\n");
-//          return (-1);
-//      }
-//
+     
   } else {
       printf("Adafruit_L3GD20::write8: SPI mode not enabled\n");
       return (-1);
-//    digitalWrite(_clk, HIGH);
-//    digitalWrite(_cs, LOW);
-//
-//    SPIxfer(reg);
-//    SPIxfer(value);
-//
-//    digitalWrite(_cs, HIGH);
   }
     return 1;
 }
@@ -318,11 +301,6 @@ uint8_t Adafruit_L3GD20::read8(l3gd20Registers_t reg)
 //    value = Wire.read();
 //    Wire.endTransmission();
       
-      //LOCK
-//      if (pthread_mutex_lock(dev_handle_mutex_ptr) ){
-//          printf("Adafruit_L3GD20::read8: Error locking thread\n");
-//          return (-1);
-//      }
       std::unique_lock<std::recursive_mutex> lck(*dev_handle_mutex_ptr);
       
       if( ioctl( dev_handle, I2C_SLAVE, address) < 0 ){
@@ -344,22 +322,9 @@ uint8_t Adafruit_L3GD20::read8(l3gd20Registers_t reg)
       }
       ret = buffer[0];
       
-      //UNLOCK~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-//      if (pthread_mutex_unlock( dev_handle_mutex_ptr) ) {
-//          printf("Adafruit_L3GD20::read8: Error unlocking thread\n");
-//          return (-1);
-//      }
-      
 
   } else {
       printf("Adafruit_L3GD20::read8: SPI mode not enabled\n");
-//    digitalWrite(_clk, HIGH);
-//    digitalWrite(_cs, LOW);
-//
-//    SPIxfer((uint8_t)reg | 0x80); // set READ bit
-//    value = SPIxfer(0xFF);
-//
-//    digitalWrite(_cs, HIGH);
   }
 
   return ret;
@@ -380,13 +345,6 @@ bool Adafruit_L3GD20::readBytes(uint8_t address, uint8_t reg, uint8_t* buffer, u
     //uint8_t ibuffer= *buffer;
     buffer[0] = reg; // set bit high for multi-byte reading
     
-    //uint8_t ret; //return value
-    
-    //LOCK~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-//    if (pthread_mutex_lock(dev_handle_mutex_ptr) ){
-//        printf("Adafruit_L3GD20::readBytes: Error locking thread\n");
-//        return (-1);
-//    }
     std::unique_lock<std::recursive_mutex> lck(*dev_handle_mutex_ptr);
     
     //Wire.beginTransmission(address);
@@ -409,32 +367,13 @@ bool Adafruit_L3GD20::readBytes(uint8_t address, uint8_t reg, uint8_t* buffer, u
         return false;
     }
     
-    //UNLOCK~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-//    if (pthread_mutex_unlock( dev_handle_mutex_ptr) ) {
-//        printf("Adafruit_L3GD20::readBytes: Error unlocking thread\n");
-//        return (-1);
-//    }
-    
     //Wire.endTransmission();
     return true;
 }
 
 
 uint8_t Adafruit_L3GD20::SPIxfer(uint8_t x) {
-  uint8_t value = 0;
+    uint8_t value = 0;
     printf("Adafruit_L3GD20::SPIxfer: SPI mode not enabled\n");
-
-//  for (int i=7; i>=0; i--) {
-//    digitalWrite(_clk, LOW);
-//    if (x & (1<<i)) {
-//      digitalWrite(_mosi, HIGH);
-//    } else {
-//      digitalWrite(_mosi, LOW);
-//      }
-//    digitalWrite(_clk, HIGH);
-//    if (digitalRead(_miso))
-//      value |= (1<<i);
-//  }
-
-  return value;
+    return value;
 }
