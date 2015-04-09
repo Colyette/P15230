@@ -159,10 +159,9 @@ int MasterI2Ccom::closei2cBus() {
  * @brief
  * @precon i2c bus must be open 
  */
-int MasterI2Ccom::requestSonar(){
+int MasterI2Ccom::requestSonar(SonarReqPkt * rPkt){
 	uint8_t mbuff[5]; //sizeof packet
-//	ReqPkt rPkt;
-	SonarReqPkt rPkt;
+	//SonarReqPkt rPkt;
 	int err,rec;
 	uint8_t dumData = 0xAA;
 
@@ -191,7 +190,7 @@ int MasterI2Ccom::requestSonar(){
 	}	
 	::usleep(100000); //wait some time ::usleep(50000)
     printf("Size of SonarReqPkt: %d\n",sizeof(SonarReqPkt));
-	if ((rec = ::read( dev_handle,&rPkt, sizeof(SonarReqPkt) )) != sizeof(SonarReqPkt)  ) { // sized in bytes
+	if ((rec = ::read( dev_handle,rPkt, sizeof(SonarReqPkt) )) != sizeof(SonarReqPkt)  ) { // sized in bytes
 		err = errno ;
                 printf("requestSonar:: Couldn't get sonar packet: errno %d rec: %d\n",err,rec);
                 return -1;
@@ -205,7 +204,9 @@ int MasterI2Ccom::requestSonar(){
 
     //	printf("buff: 0x%x 0x%x 0x%x 0x%x 0x%x \n", mbuff[0], mbuff[1], mbuff[2], mbuff[3],mbuff[4]);
     //	printf("packet: 0x%d 0x%d 0x%d 0x%d 0x%d \n", rPkt.header, rPkt.sonar1, rPkt.sonar2, rPkt.sonar3,rPkt.sonar4);
-    printf ("pkt #:%d, s1: %u, s2: %u, s3: %u, s4: %u\n", rPkt.header, rPkt.sonar1, rPkt.sonar2, rPkt.sonar3, rPkt.sonar4);
+    printf ("pkt #:%d\ns1:%dcm\ts2:%dcm\ts3:%dcm\ts4:%dcm\n cur:%fA\tvolt:%fV\n",
+            rPkt->header, (int16_t)rPkt->sonar1,(int16_t)rPkt->sonar2,(int16_t)rPkt->sonar3,(int16_t)rPkt->sonar4,
+            (double)rPkt->current, (double) rPkt->voltage); //TODO might changed from unsigned
 
 	//translate to packet, mbuff
 	//readData = (mbuff[0] <<24) || (mbuff[1] << 16) || (mbuff[2] <<8 ) || mbuff[3];
@@ -303,6 +304,7 @@ int MasterI2Ccom::sendPPM(ReqPkt* rPkt){
  * height (use 0.1m increments)
  */
 int MasterI2Ccom::launch( double height, double wiggle){
+    SonarReqPkt spkt;
     ReqPkt pkt;
     //ensure some defaults
     pkt.header = UP;
@@ -311,27 +313,49 @@ int MasterI2Ccom::launch( double height, double wiggle){
     pkt.pitch = 0;
     pkt.roll =0;
     //iffy control
-    int baro_height; //TODO sample height
-    while ( baro_height != height) { //basically while forever
-        if( (baro_height>=(height -wiggle)) & (baro_height<=(height+wiggle)) ){ //in an acceptable height range
+    double estHeight; //estimated height
+    double baro_height= imu->avgBaro; //TODO sample height, done in thread
+#ifdef HF
+    requestSonar(&spkt);
+    estHeight = 0.8*spkt.sonar4/100 + 0.2*baro_height; //TODO biasing the sonar input first, need to convert to signed
+#else
+    estHeight = baro_height;
+#endif
+    //reqAndprintBarometerData();
+    while ( estHeight != height) { //basically while forever
+        if( (estHeight>=(height -wiggle)) & (estHeight<=(height+wiggle)) ){ //in an acceptable height range
+            printf("AT CORRECT ALTITUDE\n");
             return 1; //in acceptable range
         }
-        if (baro_height <= 0.010 ) { //initial lift may need to be stronger, may need sonar first
+        if (estHeight <= 0.010 ) { //TODO initial lift may need to be stronger, may need sonar first
             pkt.header =UP;
             pkt.throttle= 2000; //some full throt value
-            sendPPM( &pkt );
+            //sendPPM( &pkt );
+            printf("UP HARD!\nEst: %f\n",estHeight);
         }
-        else if (baro_height > height) { //raise copter
+        else if (estHeight < height) { //raise copter
             pkt.header = UP;
             pkt.throttle = 1500; // go up moderately
-            sendPPM(&pkt);
+            //sendPPM(&pkt);
+            printf("UP\nEst: %f\n",estHeight);
             
-        }else if (baro_height < height) { //lower copter
+        }else if (estHeight > height) { //lower copter
             pkt.header= DOWN; //over shoot some, need to release
             pkt.throttle = 1000; //
+            //sendPPM(&pkt);
+            printf("Down\nEst: %f\n",estHeight);
             
         }
         //TODO sample height again
+        baro_height= imu->avgBaro; //TODO sample height, done in thread
+#ifdef HF
+        requestSonar(&spkt);
+        estHeight = 0.8*spkt.sonar4/100 + 0.2*baro_height; //biasing the sonar input first
+#else
+        estHeight = baro_height;
+#endif
+        ::sleep(1); // not realiable for real time.. I think (time to actualize held command)
+        //reqAndprintBarometerData();
     }
     
 }
@@ -342,27 +366,48 @@ int MasterI2Ccom::launch( double height, double wiggle){
  */
 int MasterI2Ccom::land(){
     ReqPkt pkt;
+    SonarReqPkt spkt;
     //ensure some defaults
     pkt.header = DOWN;
     pkt.throttle =0;
     pkt.yaw =0;
     pkt.pitch = 0;
     pkt.roll =0;
+    double estHeight; //estimated height
+    double baro_height= imu->avgBaro; //TODO sample height, done in thread
+#ifdef HF
+    requestSonar(&spkt);
+    estHeight = 0.8*spkt.sonar4/100 + 0.2*baro_height; //biasing the sonar input first
+#else
+    estHeight = baro_height;
+#endif
+
     //iffy control
-    int baro_height; //TODO sample height
-    while( baro_height >=0.1) { //while not in some safe landing distance
+    while( estHeight >=0.1) { //while not in some safe landing distance
         //send low throttle cmds to flight controller
         pkt.header = DOWN;
         pkt.throttle =1000; //some low values
+        ///sendPPM(&pkt);
         
         //TODO sample height again
-        //TODO what if something is located below (should be in object detection framework)
+        baro_height= imu->avgBaro; //TODO sample height, done in thread
+#ifdef HF
+        requestSonar(&spkt);
+        estHeight = 0.8*spkt.sonar4/100 + 0.2*baro_height; //biasing the sonar input first
+#else
+        estHeight = baro_height;
+#endif
+        printf("%fm\n", estHeight);
+        
+        //TODO what if something is located below (should be in object detection framework) sonar reads weird
+        ::sleep(1); // not realiable for real time.. I think (time to actualize held command)
     }
+    printf("Landed\n");
     //TODO stop motors
     //TODO test wiggle, send ppm for att hold
     pkt.header = STOP;
     pkt.throttle = 0; //stop throttle completely
-    sendPPM(&pkt);
+    ///sendPPM(&pkt);
 
     return 1;
     
@@ -382,64 +427,6 @@ int MasterI2Ccom::rotate(double deg ){
     pkt.yaw =0;
     pkt.pitch = 0;
     pkt.roll =0;
-    //assuming measurement already taken
-//    cur_pos= imu->heading;
-//    rChoice = cur_pos + deg;
-//    if (rChoice >= 360) {
-//        rChoice= rChoice -360; //account for range
-//    }
-//    lChoice = cur_pos - deg;
-//    if (lChoice < 0) {
-//        lChoice = lChoice+360;
-//    }
-//    //TODO take sample
-//    int setPos = deg; //TODO maybe plus
-//    wiggleL = setPos -2.5;
-//    if ( wiggleL <0) {
-//        wiggleL = wiggleL+360;
-//    }
-//    wiggleR = setPos +2.5;
-//    if ( wiggleR >=360){
-//        wiggleR = wiggleR -360;
-//    }
-//    
-//    while (cur_pos != setPos) { //allowing some wiggle room
-//        
-//        if ( (wiggleR >= cur_pos) && (wiggleL <= cur_pos)  ) { //good enough [+/- 2.5deg var]
-//            //TODO test wiggle, send ppm for att hold
-//            pkt.header = STOP;
-//            pkt.yaw = 1000; //stop rotation
-//            //sendPPM(&pkt);
-//            printf("THERE\n");
-//            return 1;
-//        } else if ( lChoice < rChoice ) { //turn left
-//            pkt.header = LEFT;
-//            pkt.yaw = 0; // going cc
-//            //sendPPM(&pkt);
-//            printf("GO LEFT\n");
-//            
-//        } else if( lChoice > rChoice) { //turn right
-//            pkt.header = RIGHT;
-//            pkt.yaw = 2000;
-//            //sendPPM(&pkt);
-//            printf("GO RIGHT\n");
-//        }
-//            
-//        //TODO take new sample
-//        imu -> getCompassValues();
-//        cur_pos = imu->heading;
-//        rChoice = cur_pos + deg;
-//        if (rChoice >= 360) {
-//            rChoice= rChoice -360; //account for range
-//        }
-//        lChoice = cur_pos - deg;
-//        if (lChoice < 0) {
-//            lChoice = lChoice+360;
-//        }
-//        ::sleep(1); // not realiable for real time.. I think (time to actualize held command)
-//    }
-
-    //Trying rotate again
     //suppose cur =0 then,
     float s_SP;
     wiggleR = deg + 2.5;
@@ -789,28 +776,38 @@ int main() {
         
         ::sleep(1);
     }
-    com.stopBaroThread();
+    //com.stopBaroThread();
     
     //TEST ROTATION
     printf("lets test turning to 100 deg\n");
     ::sleep (5);
     com.rotate(100);
-    printf("lets test turning to 90 deg\n");
-    ::sleep(1);
-    com.rotate(90);
-    printf ("lets test turning to 180 deg\n");
-    ::sleep(1);
-    com.rotate(180);
-    printf ("lets test turning to 0 deg\n");
-    ::sleep(1);
-    com.rotate(0);
+//    printf("lets test turning to 90 deg\n");
+//    ::sleep(1);
+//    com.rotate(90);
+//    printf ("lets test turning to 180 deg\n");
+//    ::sleep(1);
+//    com.rotate(180);
+//    printf ("lets test turning to 0 deg\n");
+//    ::sleep(1);
+//    com.rotate(0);
     
     //trying continous reading
 //    com.startBaroThread();
 //    ::sleep(10); //trying reading for 10 seconds
 //    com.stopBaroThread();
     
+    //Test launch code
+     
+    ::sleep (2);
+    printf("Prepare to launch 1.5m w/ .1m wiggle.\n");
+    com.launch(1.5, 0.1);
+    //test land code
+    ::sleep(2);
+    printf("Prepare to land.\n");
+    com.land();
     
+    com.stopBaroThread();
     printf("closing\n");
     com.closei2cBus();
     

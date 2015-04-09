@@ -49,7 +49,7 @@ public:
 	/**
 	 * \brief requests a sonar packet from sonar slave Arduino
 	 */
-	int requestSonar();
+	int requestSonar(SonarReqPkt * rPkt);
     
     /**
      * \brief continously reads baro values
