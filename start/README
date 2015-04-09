@@ -1,0 +1,10 @@
+Used to lauch Quad program at button press
+order:
+    1.launch (at reboot registered on cron log)
+    2.buttonPress.py polls until the start button is pressed
+    3.lmnoCopter.sh starts the main program sending output into a timed log
+
+TODO
+*reference the main program in lmnoCopter.sh
+*confirm GPIO pin number actually used on schematic layout
+
