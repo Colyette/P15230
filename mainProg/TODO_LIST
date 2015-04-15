@@ -1,0 +1,9 @@
+[X]// make 2D coordinate initialization
+[X]// make dummy setpoint list (hardcoded)
+//start execution loop
+//account for end program flags (good or error)
+//Polish launch command
+//Start Hover command
+//Start Forward command
+//start reverse biasing to fix drift after commands stop
+
