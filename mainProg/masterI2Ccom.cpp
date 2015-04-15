@@ -119,9 +119,9 @@ MasterI2Ccom:: MasterI2Ccom(){
     map->initializeGrid();
     map->add_neighbors();
     subTargetList.push_back(map->getNode(T1_X,T1_Y));
-    subTargetList.push_back(map->getNode(T2_X,T2_Y)));
-    subTargetList.push_back(map->getNode(T3_X,T3_Y)));
-    subTargetList.push_back(map->getNode(T4_X,T4_Y)));
+    subTargetList.push_back(map->getNode(T2_X,T2_Y));
+    subTargetList.push_back(map->getNode(T3_X,T3_Y));
+    subTargetList.push_back(map->getNode(T4_X,T4_Y));
     
     
 }
@@ -509,7 +509,7 @@ int hover(){
 //###################################END some generic flight commands
 
 
-#ifndef TEENSY_COM_TEST
+#ifdef TEENSY_COM_TEST
 int main() {
 	int i;
 	int testFlight;
@@ -520,6 +520,7 @@ int main() {
 	uint8_t dumData = 0xAA; //Dummy param's payload data to send for now
 
 	//dum pkts
+    SonarReqPkt sPkt;
 	ReqPkt rPkt;
     rPkt.altitudeHold = 0; //TODO
 	//open bus
@@ -692,7 +693,7 @@ printf("got %d\n",cmd);
                 }
                 break;
             case 12:
-                if (com.requestSonar() ==1) {
+                if (com.requestSonar(&sPkt) ==1) {
                     printf("Got pkt \\(^_^)/\n\n");
                 }else{
                     printf("no pkt :-(\n\n");
@@ -711,7 +712,7 @@ printf("got %d\n",cmd);
 	printf("Lets request some Sonar Readings\n");
 	//get some packets
 	for (i=0;i<10;i++){
-		if( com.requestSonar() ==1 ) {
+		if( com.requestSonar(&sPkt) ==1 ) {
 			printf("Got pkt \\(^_^)/\n\n");
 		}else{
 			printf("no pkt :-(\n\n");
