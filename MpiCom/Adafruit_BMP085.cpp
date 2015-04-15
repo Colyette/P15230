@@ -27,7 +27,7 @@
 #include <unistd.h>         //constants for posix compliance
 #include <math.h>           //for calculations
 
-#define NUM_START_SAMPLE (20) //number of samples to take for establishing starting altitude
+#define NUM_START_SAMPLE (50) //number of samples to take for establishing starting altitude
 
 Adafruit_BMP085::Adafruit_BMP085() {
 }

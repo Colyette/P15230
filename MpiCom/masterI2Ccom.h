@@ -13,10 +13,27 @@
 #include <stdint.h>
 #include <pthread.h>    //for threading
 #include <mutex>        //for recursive mutex
+#include <queue>        //for vector of sub targets
 #include "sharedi2cCom.h"
 #include "IMU.h"
+#include "Grid.h"
 
 //#define M_PI 3.141592653589793238462643 //stolen from Arduino's math.h lib
+
+//for Jetson Course, in meters
+#define COURSE_X_DIM (85)
+#define COURSE_Y_DIM (85)
+#define RESOLUTION   (1) //spaceing between each node/point in meters
+#define NUM_SUB_TARGETS (4) // number of stops to make this trip, hardcoded to 4
+//hardcoded 4 targets
+#define T1_X    (10)
+#define T1_Y    (10)
+#define T2_X    (10)
+#define T2_Y    (20)
+#define T3_X    (20)
+#define T3_Y    (10)
+#define T4_X    (20)
+#define T4_Y    (20)
 
 /**
  * Class for i2c communications with Arudino slaves (PPM signal propeller control outbound and  
@@ -86,6 +103,17 @@ public:
      * \brief rotates the copter left/counter-clockwise to the given degree
      */
     int rotate(double deg );
+    
+    /**
+     * \brief goes forward the set amount of meters
+     * \param meters- the number of meters to go forward
+     */
+    int forward(double meters);
+    
+    /**
+     * \brief keeps the craft hovering relativly in place
+     */
+    int hover();
 
 	/**
 	 * \brief gives 'absolute coordinates to the LIDAR unit
@@ -129,6 +157,14 @@ private:
     
     //mutex for device hangle
     static std::recursive_mutex dev_handle_mutex;
+    
+    //grid with path planning
+    Grid* map;
+    //list of sub targets
+    std::vector<Node*> subTargetList;
+    // saving assumed position in map
+    double cur_x_pos;
+    double cur_y_pos;
 
 };
 #endif //MASTER_I2C_COM

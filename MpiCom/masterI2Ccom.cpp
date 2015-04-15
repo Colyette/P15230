@@ -16,9 +16,13 @@
 #include <stdlib.h>
 #include <math.h>
 #include "masterI2Ccom.h" 
-#include "sharedi2cCom.h" 
-#include "ADXL345.h"    //accelerameter lib
+#include "sharedi2cCom.h"
+//#include "ADXL345.h"    //accelerameter lib
 
+//inilize static mutex for I2C driver sharing
+std::recursive_mutex MasterI2Ccom::dev_handle_mutex;
+
+//#################################BEGIN For Running the Barometer reading thread
 #define NUM_SAMPLES (10) //number of samples to take before selecting median
 //#define AVERAGE
 /**
@@ -31,7 +35,7 @@ void * BarometerHelper(void* instance) {
     return 0 ;
 }
 
-std::recursive_mutex MasterI2Ccom::dev_handle_mutex;
+
 
 /**
  * \brief continously reads barometer data, and selects the candidate reading
@@ -101,18 +105,33 @@ void MasterI2Ccom::stopBaroThread() {
     printf("BaroThread closed\n");
     return;
 }
+//#################################END For Running the Barometer reading thread
 
+//#################################BEGIN Constructor and Destructor
 MasterI2Ccom:: MasterI2Ccom(){
 	printf("MasterI2Ccom:: Class initialized \n");
 	dev_handle = -1;
     //dev_handle_mutex = PTHREAD_MUTEX_INITIALIZER;
     //pthread_mutex_init(&dev_handle_mutex,NULL);
+    
+    //init map with course (navigatable) dimensions
+    map = new Grid (COURSE_X_DIM,COURSE_Y_DIM,RESOLUTION);
+    map->initializeGrid();
+    map->add_neighbors();
+    subTargetList.push_back(map->getNode(T1_X,T1_Y));
+    subTargetList.push_back(map->getNode(T2_X,T2_Y));
+    subTargetList.push_back(map->getNode(T3_X,T3_Y));
+    subTargetList.push_back(map->getNode(T4_X,T4_Y));
+    
+    
 }
 
 MasterI2Ccom::~MasterI2Ccom() {
 	printf("~MasterI2Ccom:: Class destroyed\n");
 }
+//#################################END Constructor and Destructor
 
+//#################################BEGIN I2C Communications Functions
 /**
  * \brief Open the I2C bus on the master Pi, then initilizes the IMU
  * if sucessful
@@ -206,7 +225,48 @@ int MasterI2Ccom::requestSonar(SonarReqPkt * rPkt){
 	return 1;
 }
 
-//####################################
+/**
+ * \brief sends a packet to the Arduino PPM slave in order relay
+ * 	a flight cmd
+ * \param cmd - the command to be sent to the Arduino
+ */
+int MasterI2Ccom::sendPPM(ReqPkt* rPkt){
+    //TODO send a pkt to the movement
+    //ReqPkt rPkt;
+    int err,rec;
+    
+    std::unique_lock<std::recursive_mutex> lck(dev_handle_mutex);
+    
+    //point to sonar slave
+    if( ioctl( dev_handle, I2C_SLAVE, ppmArduinoAdd) < 0 ){
+        err = errno ;
+        printf( "sendPPM:: I2C bus cannot point to PPM Slave: errno %d \n",err);
+        return 0;
+    }
+    //TODO modify for receiving sonar packets
+    if (    write(dev_handle,rPkt, sizeof(ReqPkt) ) != sizeof(ReqPkt) ){
+        err = errno ;
+        printf("sendPPM:: Couldn't send flight request packet: errno %d\n",err);
+        return -1;
+    }
+    ::usleep(1000);//::usleep(100000); //wait some time ::usleep(50000)
+    printf("Size of ReqPkt: %d\n",sizeof(ReqPkt));
+    if ((rec = ::read( dev_handle,rPkt, sizeof(ReqPkt) )) != sizeof(ReqPkt)  ) { // sized in bytes
+        err = errno ;
+        printf("sendPPM:: Couldn't get flight request packet reply: errno %d rec: %d\n",err,rec);
+        return -1;
+    }
+    
+    printf ("header #:%d, throttle:%u, yaw:%u, pitch:%u, roll:%u\n", rPkt->header, rPkt->throttle,
+            rPkt->yaw,rPkt->pitch, rPkt->roll);
+    
+    printf("sendPPM:: Received packet\n");
+    return 1;
+}
+
+
+
+//#################################### triggers i2C imu reads
 //TEsting functs
 void MasterI2Ccom::reqAndprintAccelerameterData(){
     imu -> getAccelerationValues();
@@ -233,51 +293,15 @@ void MasterI2Ccom::reqAndprintBarometerData() {
 void MasterI2Ccom::reqAndprintGyrometerData() {
     imu->getGryoValues();
     printf("Gyro values:\nx:%f\ty:%f\tz:%f\n", imu->g_x,imu->g_y, imu->g_z);
+
+    
 }
 
 //##########################
+//#################################END I2C Communications Functions
 
 
-/**
- * \brief sends a packet to the Arduino PPM slave in order relay
- * 	a flight cmd
- * \param cmd - the command to be sent to the Arduino
- */
-int MasterI2Ccom::sendPPM(ReqPkt* rPkt){
-	//TODO send a pkt to the movement 
-	//ReqPkt rPkt;
-    int err,rec;
-    
-    std::unique_lock<std::recursive_mutex> lck(dev_handle_mutex);
-    
-    //point to sonar slave
-    if( ioctl( dev_handle, I2C_SLAVE, ppmArduinoAdd) < 0 ){
-            err = errno ;
-            printf( "sendPPM:: I2C bus cannot point to PPM Slave: errno %d \n",err);
-            return 0;
-    }
-    //TODO modify for receiving sonar packets
-    if (    write(dev_handle,rPkt, sizeof(ReqPkt) ) != sizeof(ReqPkt) ){
-            err = errno ;
-            printf("sendPPM:: Couldn't send flight request packet: errno %d\n",err);
-            return -1;
-    }
-    ::usleep(1000);//::usleep(100000); //wait some time ::usleep(50000)
-    printf("Size of ReqPkt: %d\n",sizeof(ReqPkt));
-    if ((rec = ::read( dev_handle,rPkt, sizeof(ReqPkt) )) != sizeof(ReqPkt)  ) { // sized in bytes
-            err = errno ;
-            printf("sendPPM:: Couldn't get flight request packet reply: errno %d rec: %d\n",err,rec);
-            return -1;
-    }
-
-    printf ("header #:%d, throttle:%u, yaw:%u, pitch:%u, roll:%u\n", rPkt->header, rPkt->throttle,
-        rPkt->yaw,rPkt->pitch, rPkt->roll);
-
-    printf("sendPPM:: Received packet\n");
-	return 1;
-}
-
-//############################################ Some generic flight commands###############################
+//############################################BEGIN Some generic flight commands###############################
 /**
  * \brief lifts the craft from initial takeoff, could be used to get higher
  * height (use 0.1m increments)
@@ -466,9 +490,26 @@ int MasterI2Ccom::rotate(double deg ){
     return 1;
 }
 
+//TODO ##### should reverse biasing be in the movement command or hover?????
+/**
+ * \brief goes forward the set amount of meters
+ * \param meters- the number of meters to go forward
+ */
+int forward(double meters){
+    //TODO
+}
+
+/**
+ * \brief keeps the craft hovering relativly in place
+ */
+int hover(){
+    //TODO
+}
+
+//###################################END some generic flight commands
 
 
-#ifndef SENSOR_TESTING
+#ifdef TEENSY_COM_TEST
 int main() {
 	int i;
 	int testFlight;
@@ -479,6 +520,7 @@ int main() {
 	uint8_t dumData = 0xAA; //Dummy param's payload data to send for now
 
 	//dum pkts
+    SonarReqPkt sPkt;
 	ReqPkt rPkt;
     rPkt.altitudeHold = 0; //TODO
 	//open bus
@@ -651,7 +693,7 @@ printf("got %d\n",cmd);
                 }
                 break;
             case 12:
-                if (com.requestSonar() ==1) {
+                if (com.requestSonar(&sPkt) ==1) {
                     printf("Got pkt \\(^_^)/\n\n");
                 }else{
                     printf("no pkt :-(\n\n");
@@ -670,7 +712,7 @@ printf("got %d\n",cmd);
 	printf("Lets request some Sonar Readings\n");
 	//get some packets
 	for (i=0;i<10;i++){
-		if( com.requestSonar() ==1 ) {
+		if( com.requestSonar(&sPkt) ==1 ) {
 			printf("Got pkt \\(^_^)/\n\n");
 		}else{
 			printf("no pkt :-(\n\n");
@@ -794,5 +836,13 @@ int main() {
     
     return 1;
 }
-
+#elif defined(MAIN)
+/**
+ * \brief the actual main program for the quadcopter, skeleton
+ */
+int main () {
+ 
+    
+    return 1;
+}
 #endif
