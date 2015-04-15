@@ -10,5 +10,6 @@ cd /home/pi/c_code/platfromCom/
 mkdir -p logs
 echo $_now > $_file
 
+#Assusmes program lmnoCopter is precompiled
 #start program, send output to created log
-./test >> $_file 2>&1
+./lmnoCopter >> $_file 2>&1
