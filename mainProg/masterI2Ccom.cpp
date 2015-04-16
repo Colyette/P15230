@@ -300,6 +300,80 @@ void MasterI2Ccom::reqAndprintGyrometerData() {
 //##########################
 //#################################END I2C Communications Functions
 
+/**
+ * \brief gives 'absolute coordinates to the LIDAR unit
+ * receives distances of approaching objects
+ */
+int MasterI2Ccom::updateLIDAR(){
+    
+    return 1;
+}
+
+/**
+ * \brief calls for LIDAR and SONAR sensor reading to update map
+ */
+int MasterI2Ccom::updateMap(){
+    
+    SonarReqPkt sPkt;
+    Node * n1;
+    Node * n2; //for removing edges
+    int alpha;    //offset
+    int n_1_x,n_1_y,n_2_x, n_2_y; //for mapping node coordinates
+    int updateflg=0;
+    
+    requestSonar(&sPkt);
+    
+    //blklist left detection
+    alpha = floor (sPkt.sonar1*100/RESOLUTION);
+    n_1_x = cur_x_pos - alpha;
+    n_2_x = cur_x_pos- (alpha-1);
+    n_1_y = cur_y_pos;
+    n_2_y = cur_y_pos;
+    if ( n_1_x >= 0) { //valid nodes to remove
+        n1 = map->getNode(n_1_y,n_1_y);
+        n2 = map->getNode(n_2_x,n_2_y);
+        if (map->removeEdge(n1,n2) ){
+            printf("Removed edge from N(%d,%d) to N(%d,%d)\n",n_1_x,n_1_y,n_2_x,n_2_y);
+            updateflg |=0x02;
+        }
+    }
+    
+    //blklist right detection
+    alpha = floor (sPkt.sonar2*100/RESOLUTION);
+    n_1_x = cur_x_pos + alpha;
+    n_2_x = cur_x_pos + (alpha-1);
+    n_1_y = cur_y_pos;
+    n_2_y = cur_y_pos;
+    if ( n_1_x <= COURSE_X_DIM) { //valid nodes to remove
+        n1 = map->getNode(n_1_y,n_1_y);
+        n2 = map->getNode(n_2_x,n_2_y);
+        if (map->removeEdge(n1,n2) ){
+            printf("Removed edge from N(%d,%d) to N(%d,%d)\n",n_1_x,n_1_y,n_2_x,n_2_y);
+             updateflg |=0x04;
+        }
+    }
+    
+    //blklist back detection, not really needed?
+    alpha = floor (sPkt.sonar3*100/RESOLUTION);
+    n_1_x = cur_x_pos;
+    n_2_x = cur_x_pos;
+    n_1_y = cur_y_pos- alpha;
+    n_2_y = cur_y_pos- (alpha-1);
+    if ( n_1_x >= 0) { //valid nodes to remove
+        n1 = map->getNode(n_1_y,n_1_y);
+        n2 = map->getNode(n_2_x,n_2_y);
+        if (map->removeEdge(n1,n2) ){
+            printf("Removed edge from N(%d,%d) to N(%d,%d)\n",n_1_x,n_1_y,n_2_x,n_2_y);
+             updateflg |=0x08;
+        }
+    }
+    
+    //do lidar stuff!
+    if (updateLIDAR() ) {
+        updateflg |= 0x01;
+    }
+    return updateflg;
+}
 
 //############################################BEGIN Some generic flight commands###############################
 /**

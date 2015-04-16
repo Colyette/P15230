@@ -31,11 +31,11 @@
 	 * If sensor reading isn't ready, the last calculated on a sent. 
          */
         typedef struct {
-                uint16_t header; //Command to the microcontroller
-                uint16_t sonar1; 
-		    uint16_t sonar2;
-		    uint16_t sonar3;
-		    uint16_t sonar4;
+            uint16_t header; //Command to the microcontroller
+            uint16_t sonar1; //Left
+            uint16_t sonar2; //Right
+		    uint16_t sonar3; //Rear
+		    uint16_t sonar4; //Bottom
             uint16_t current; //current sensing reading
             uint16_t voltage; //voltage sensing reading
         } SonarReqPkt;

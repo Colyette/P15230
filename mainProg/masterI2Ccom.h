@@ -121,6 +121,11 @@ public:
 	 */
 	int updateLIDAR();
 
+    
+    /**
+     * \brief calls for LIDAR and SONAR sensor reading to update map
+     */
+    int updateMap();
 
 	/**
 	 * @brief sends a packet for PPM interpretation in the quad motion control
