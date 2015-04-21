@@ -1,1 +1,4 @@
-#Required classes for main program
+Required classes for main program
+==============
+RPi B compile time from $make all measured 'real	1m36.448s'
+
