@@ -1080,7 +1080,7 @@ int main () {
         }
         
     }
-    Printf("Done with navigation program\n");
+    printf("Done with navigation program\n");
 
     nav.closei2cBus();
     return 1;
