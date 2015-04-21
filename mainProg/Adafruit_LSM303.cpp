@@ -84,7 +84,7 @@ bool Adafruit_LSM303::begin()
 /***************************************************************************
  PUBLIC FUNCTIONS
  ***************************************************************************/
-void Adafruit_LSM303::readAccel()
+bool Adafruit_LSM303::readAccel()
 {
     uint8_t buffer[6]; //6 byte butter to store read data
     uint8_t cmd;
@@ -98,7 +98,10 @@ void Adafruit_LSM303::readAccel()
     
     //asserting MSB for multiple byte read
     cmd = (LSM303_REGISTER_ACCEL_OUT_X_L_A |0x80);
-    readBytes((uint8_t)LSM303_ADDRESS_ACCEL, cmd,buffer, (uint8_t)6);
+    if ( !readBytes((uint8_t)LSM303_ADDRESS_ACCEL, cmd,buffer, (uint8_t)6)) {
+        printf("Adafruit_LSM303::readAccel():Error on reading Accellerometer\n");
+        return false;
+    }
     //assign read data
     
     uint8_t xlo = buffer[0];// Wire.read();
@@ -127,7 +130,7 @@ void Adafruit_LSM303::readAccel()
     //printf("accel:\tx:0x%x\ty:0x%x\tz:0x%x\n",accelData.x,accelData.y, accelData.z);
 }
 
-void Adafruit_LSM303::readComp()
+bool Adafruit_LSM303::readComp()
 {
     uint8_t buffer[6]; //6 byte butter to store read data
     // Read the magnetometer
@@ -138,7 +141,11 @@ void Adafruit_LSM303::readComp()
     // Wait around until enough data is available
     //while (Wire.available() < 6);
     
-    readBytes((uint8_t)LSM303_ADDRESS_MAG, (uint8_t)LSM303_REGISTER_MAG_OUT_X_H_M,buffer, (uint8_t)6);
+   if (  !readBytes((uint8_t)LSM303_ADDRESS_MAG, (uint8_t)LSM303_REGISTER_MAG_OUT_X_H_M,
+                    buffer, (uint8_t)6) ){
+       printf("Adafruit_LSM303::readComp():Error on reading Compass\n");
+       return false;
+   }
     
     // Note high before low (different than accel)
     uint8_t xhi = buffer[0];//Wire.read();

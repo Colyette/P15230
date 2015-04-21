@@ -129,6 +129,33 @@ MasterI2Ccom:: MasterI2Ccom(){
 MasterI2Ccom::~MasterI2Ccom() {
 	printf("~MasterI2Ccom:: Class destroyed\n");
 }
+
+/**
+ * \breif using the current position, figures rotaion positions for
+ * node navigation
+ */
+int MasterI2Ccom::_calibrateOrientaion(){
+    //TODO TEST
+    if(!imu -> getCompassValues()){
+        return 0;
+    }
+    upHeading = imu->heading;       //assume facing postion is now up
+    downHeading = upHeading -180;
+    if (downHeading < 0) {
+        downHeading += 360; //re-adjust for 0-360
+    }
+    leftHeading = upHeading -90;
+    if (leftHeading < 0) {
+        leftHeading += 360; //re-adjust for 0-360
+    }
+    rightHeading = upHeading +90;
+    if (rightHeading > 360) {
+        rightHeading -= 360; //re-adjust for 0-360
+    }
+    printf ("MasterI2Ccom::_calibrateOrientaion(): Calibrated Heading as UP:%fdeg DOWN:%fdeg LEFT:%fdeg RIGHT:%fdeg\n",
+            upHeading,downHeading,leftHeading,rightHeading );
+    return 1; //TODO if IMU reading unsuccessful...
+}
 //#################################END Constructor and Destructor
 
 //#################################BEGIN I2C Communications Functions
@@ -149,6 +176,11 @@ int MasterI2Ccom::openi2cBus() {
         } else{ //Pass handler to IMU
             printf("passing desc=%d to IMU\n",dev_handle);
             imu =  new IMU(dev_handle,&dev_handle_mutex);
+            printf("MasterI2Ccom::openi2cBus():IMU init, calibrating orientation\n");
+            if (!_calibrateOrientaion()) { //
+                printf("MasterI2Ccom::openi2cBus(): couldn't calibrate orientation\n");
+                //TODO handle
+            }
         }
 	}
 	printf("openi2cBus:: Bus opened desc=%d\n",dev_handle);
@@ -569,19 +601,87 @@ int MasterI2Ccom::rotate(double deg ){
  * \brief goes forward the set amount of meters
  * \param meters- the number of meters to go forward
  */
-int forward(double meters){
+int MasterI2Ccom::forward(double meters){
     //TODO
 }
 
 /**
  * \brief keeps the craft hovering relativly in place
  */
-int hover(){
+int MasterI2Ccom::hover(){
     //TODO
 }
 
 //###################################END some generic flight commands
+/**
+ * \brief from the provided next point, will rotate and fly forward to
+ * that point
+ * \param navPoint the targeted node to move to
+ */
+int MasterI2Ccom::navToPoint(Node* navPoint){
+    //TODO MAYBE CHECK FOR OBJECT UPDATES HERE...
+    if (navPoint == cur_pos->getNeighbor(UP)) { //up neighbor is next
+        printf("Turning Forward\n");
+        //rotate up
+        rotate(upHeading);
+        //go forward
+        printf("Going forward %dm\n",RESOLUTION);
+        forward(RESOLUTION);
+        printf("hover\n");
+        hover();
+    }
+    else if (navPoint == cur_pos->getNeighbor(DOWN)){
+        printf("Turning 180\n");
+        //rotate back
+        rotate(downHeading);
+        //go forward
+        printf("Going forward %dm\n",RESOLUTION);
+        forward(RESOLUTION);
+        printf("hover\n");
+        hover();
+    }
+    else if (navPoint == cur_pos->getNeighbor(LEFT)) {
+        printf("Turning left\n");
+        //rotate left
+        rotate(leftHeading);
+        //go forward
+         printf("Going forward %dm\n",RESOLUTION);
+        forward(RESOLUTION);
+        printf("hover\n");
+        hover();
+    }
+    else if (navPoint == cur_pos->getNeighbor(RIGHT)) {
+        printf("Turning right\n");
+        //rotate right
+        rotate(rightHeading);
+        //go forward
+        printf("Going forward %dm\n",RESOLUTION);
+        forward(RESOLUTION);
+        printf("hover\n");
+        hover();
+        
+    }
+    else{
+        printf("MasterI2Ccom::navToPoint: error finding direction of next point\n");
+    }
+    
+    
+}
 
+/**
+ * \brief returns the next node to go to from current discret location
+ */
+Node* MasterI2Ccom::getNextNavPoint( Node* finish){
+    std::vector<Node*> theChosenPath;
+    if((cur_pos!=NULL) &&(finish!=NULL)) {
+       theChosenPath = map->findPath(cur_pos,finish); //get shortest path
+        if (theChosenPath.size() >0) { //TODO make sure this doesn't error
+            return theChosenPath.at(0);
+        }
+    }
+    return NULL;
+}
+//
 
 #ifdef TEENSY_COM_TEST
 int main() {
@@ -915,8 +1015,39 @@ int main() {
  * \brief the actual main program for the quadcopter, skeleton
  */
 int main () {
- 
+    Node* target;
+    Node* next;
+    int updateStatus;
+    ///
+    MasterI2Ccom nav = MasterI2Ccom();	//main interface
+    nav.openi2cBus();                   //open i2c device
+    //start baro continous readings
+    nav.startBaroThread();
     
+    //temp cyclic executive
+    for (int i= 0; i<NUM_SUB_TARGETS; i++) {
+        //while not there...
+        //get next discrete point
+        target = nav.getSubtarget (i);
+        next = nav.getNextNavPoint(target);
+        while (next != NULL) {
+            //update Map
+            updateStatus = nav.updateMap();
+            //get next point, if changed
+            if (updateStatus) {
+                next =nav.getNextNavPoint(target);
+            }
+            //nav to next point
+            nav.navToPoint(next);
+            //update cur_pos, TEMP
+            nav.set_cur_pos(next);
+            //update next
+            next = nav.getNextNavPoint(target);
+        }
+        
+    }
+
+    nav.closei2cBus();
     return 1;
 }
 #endif

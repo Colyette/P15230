@@ -29,7 +29,7 @@ public:
     int getAccelerationValues();
     
     //gets the 3 DoF for orientation, pass in datastruct
-    int getCompassValues();
+    bool getCompassValues();
     
     //get the altitude
     int getAltitude();

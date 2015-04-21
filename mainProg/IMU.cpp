@@ -62,8 +62,12 @@ int IMU::getAccelerationValues(){
     return 1; //TODO
 }
 
-int IMU::getCompassValues(){
-    com_acc.readComp(); //read values from component
+bool IMU::getCompassValues(){
+    if ( !com_acc.readComp()) { //read values from component
+        printf("IMU::getCompassValues(): error on read\n");
+        return false;
+    }
+    
     //assign locally
     c_x = com_acc.magData.x;
     c_y= com_acc.magData.y;
@@ -79,7 +83,7 @@ int IMU::getCompassValues(){
         heading = heading +360;
     }
     
-    return 1;//TODO
+    return true;//TODO
 }
 
 int IMU::getAltitude(){

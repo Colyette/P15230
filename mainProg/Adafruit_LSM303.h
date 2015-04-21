@@ -113,8 +113,8 @@ class Adafruit_LSM303
     Adafruit_LSM303(); 
     
     bool begin(void);
-    void readAccel(void);
-    void readComp(void);
+    bool readAccel(void);
+    bool readComp(void);
     bool setMagGain(lsm303MagGain gain);
 
     lsm303AccelData accelData;    // Last read accelerometer data will be available here

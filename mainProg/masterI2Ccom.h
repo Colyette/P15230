@@ -83,6 +83,7 @@ public:
      */
     void stopBaroThread();
     
+    
     //TEsting functs
     void reqAndprintAccelerameterData();
     void reqAndprintCompassData();
@@ -114,6 +115,18 @@ public:
      * \brief keeps the craft hovering relativly in place
      */
     int hover();
+    
+    /**
+     * \brief from the provided next point, will rotate and fly forward to
+     * that point
+     * \param navPoint the targeted node to move to
+     */
+    int navToPoint(Node* navPoint);
+    
+    /**
+     * \brief update cur_pos node ptr
+     */
+    int set_cur_pos(Node* n_cur_pos){ cur_pos = n_cur_pos;}
 
 	/**
 	 * \brief gives 'absolute coordinates to the LIDAR unit
@@ -140,7 +153,17 @@ public:
      */
     int get_dev_handle(){return dev_handle;}
     
+    /**
+     *\breif returns the Node that is set as the indexed target
+     * \param targetNum - the indexed target 
+     * \return Node* - the node set as the targeted location at that index
+     */
+    Node* getSubtarget(int targetNum){return subTargetList.at(targetNum);}
     
+    /**
+     * \brief returns the next node to go to from current discret location
+     */
+    Node* getNextNavPoint( Node* finish);
     
 private:
 	
@@ -170,6 +193,18 @@ private:
     // saving assumed position in map
     double cur_x_pos;
     double cur_y_pos;
+    Node* cur_pos;
+    
+    /**
+     * \brief using the current position, figures rotaion positions for
+     * node navigation
+     */
+    int _calibrateOrientaion();
+    
+    double upHeading;
+    double downHeading;
+    double leftHeading;
+    double rightHeading;
 
 };
 #endif //MASTER_I2C_COM
