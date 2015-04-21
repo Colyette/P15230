@@ -35,6 +35,7 @@
 #define T4_X    (20)
 #define T4_Y    (20)
 
+#define COMSTATUS_TEENSY (0x4)    //flag set mask for teensy communications status
 /**
  * Class for i2c communications with Arudino slaves (PPM signal propeller control outbound and  
  * sonar sensor readings inbound)
@@ -165,12 +166,19 @@ public:
      */
     Node* getNextNavPoint( Node* finish);
     
+    /**
+     * \brief getter for i2c slave communications status flg
+     */
+    uint8_t geti2cComStatus(){return i2cComStatus;}
+    
 private:
 	
 	/**
 	 * device handle for the i2c bus
 	 */
 	int dev_handle;
+    
+    uint8_t i2cComStatus; //tells the status of i2c slaves
     
     IMU* imu; //imu sensor for determining current pos to set pos
 
@@ -187,7 +195,7 @@ private:
     static std::recursive_mutex dev_handle_mutex;
     
     //grid with path planning
-    Grid* map;
+    Grid* gridMap;
     //list of sub targets
     std::vector<Node*> subTargetList;
     // saving assumed position in map

@@ -16,6 +16,10 @@
 #define COMPASS_ADDRESS         (0x1E)  //address of compass, same as gy-80
 #define LINEAR_ACCEL_ADDRESS    (0x19)
 
+#define COMSTATUS_COM_ACC   (0x01)
+#define COMSTATUS_BARO      (0x02)
+#define COMSTATUS_GYRO      (0x03)
+
 class IMU {
 public:
     IMU(int e_i2c_bus_handler,std::recursive_mutex* e_dev_handle_mutex);
@@ -59,14 +63,17 @@ public:
     float g_y;
     float g_z;
     
-    
-    
+    /**
+     * \brief returns the comStatus, positive flags mean online
+     */
+    uint8_t getcomStatus(){return comStatus;}
     
 private:
     
     std::recursive_mutex* dev_handle_mutex_ptr;
     
     int dev_handle; //handler for I2C bus
+    uint8_t comStatus; //tells if the sensors are online, set at initialization
     
     //IMU module drivers
     Adafruit_LSM303 com_acc; //compass and accelerameter module

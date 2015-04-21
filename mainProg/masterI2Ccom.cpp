@@ -97,6 +97,7 @@ int MasterI2Ccom::startBaroThread(){
         printf("MainThread: error creating BaroThread thread\n");
         return -1;
     }
+    return 1;
 }
 
 void MasterI2Ccom::stopBaroThread() {
@@ -115,14 +116,14 @@ MasterI2Ccom:: MasterI2Ccom(){
     //pthread_mutex_init(&dev_handle_mutex,NULL);
     
     //init map with course (navigatable) dimensions
-    map = new Grid (COURSE_X_DIM,COURSE_Y_DIM,RESOLUTION);
-    map->initializeGrid();
-    map->add_neighbors();
-    subTargetList.push_back(map->getNode(T1_X,T1_Y));
-    subTargetList.push_back(map->getNode(T2_X,T2_Y));
-    subTargetList.push_back(map->getNode(T3_X,T3_Y));
-    subTargetList.push_back(map->getNode(T4_X,T4_Y));
-    
+    gridMap = new Grid (COURSE_X_DIM,COURSE_Y_DIM,RESOLUTION);
+    gridMap->initializeGrid();
+    gridMap->add_neighbors();
+    subTargetList.push_back(gridMap->getNode(T1_X,T1_Y));
+    subTargetList.push_back(gridMap->getNode(T2_X,T2_Y));
+    subTargetList.push_back(gridMap->getNode(T3_X,T3_Y));
+    subTargetList.push_back(gridMap->getNode(T4_X,T4_Y));
+    printf("MasterI2cCom:: gridMap initialized with referenced subtargetlist \n");
     
 }
 
@@ -176,6 +177,8 @@ int MasterI2Ccom::openi2cBus() {
         } else{ //Pass handler to IMU
             printf("passing desc=%d to IMU\n",dev_handle);
             imu =  new IMU(dev_handle,&dev_handle_mutex);
+            //check IMU module communications status flg
+            i2cComStatus |= imu->getcomStatus();
             printf("MasterI2Ccom::openi2cBus():IMU init, calibrating orientation\n");
             if (!_calibrateOrientaion()) { //
                 printf("MasterI2Ccom::openi2cBus(): couldn't calibrate orientation\n");
@@ -353,7 +356,10 @@ int MasterI2Ccom::updateMap(){
     int n_1_x,n_1_y,n_2_x, n_2_y; //for mapping node coordinates
     int updateflg=0;
     
-    requestSonar(&sPkt);
+    if (requestSonar(&sPkt) <1) {
+        printf("MasterI2cCom::updateMap() error requesting sensor reading pkt\n");
+        return -1;
+    }
     
     //blklist left detection
     alpha = floor (sPkt.sonar1*100/RESOLUTION);
@@ -362,9 +368,9 @@ int MasterI2Ccom::updateMap(){
     n_1_y = cur_y_pos;
     n_2_y = cur_y_pos;
     if ( n_1_x >= 0) { //valid nodes to remove
-        n1 = map->getNode(n_1_y,n_1_y);
-        n2 = map->getNode(n_2_x,n_2_y);
-        if (map->removeEdge(n1,n2) ){
+        n1 = gridMap->getNode(n_1_y,n_1_y);
+        n2 = gridMap->getNode(n_2_x,n_2_y);
+        if (gridMap->removeEdge(n1,n2) ){
             printf("Removed edge from N(%d,%d) to N(%d,%d)\n",n_1_x,n_1_y,n_2_x,n_2_y);
             updateflg |=0x02;
         }
@@ -377,9 +383,9 @@ int MasterI2Ccom::updateMap(){
     n_1_y = cur_y_pos;
     n_2_y = cur_y_pos;
     if ( n_1_x <= COURSE_X_DIM) { //valid nodes to remove
-        n1 = map->getNode(n_1_y,n_1_y);
-        n2 = map->getNode(n_2_x,n_2_y);
-        if (map->removeEdge(n1,n2) ){
+        n1 = gridMap->getNode(n_1_y,n_1_y);
+        n2 = gridMap->getNode(n_2_x,n_2_y);
+        if (gridMap->removeEdge(n1,n2) ){
             printf("Removed edge from N(%d,%d) to N(%d,%d)\n",n_1_x,n_1_y,n_2_x,n_2_y);
              updateflg |=0x04;
         }
@@ -392,9 +398,9 @@ int MasterI2Ccom::updateMap(){
     n_1_y = cur_y_pos- alpha;
     n_2_y = cur_y_pos- (alpha-1);
     if ( n_1_x >= 0) { //valid nodes to remove
-        n1 = map->getNode(n_1_y,n_1_y);
-        n2 = map->getNode(n_2_x,n_2_y);
-        if (map->removeEdge(n1,n2) ){
+        n1 = gridMap->getNode(n_1_y,n_1_y);
+        n2 = gridMap->getNode(n_2_x,n_2_y);
+        if (gridMap->removeEdge(n1,n2) ){
             printf("Removed edge from N(%d,%d) to N(%d,%d)\n",n_1_x,n_1_y,n_2_x,n_2_y);
              updateflg |=0x08;
         }
@@ -603,6 +609,7 @@ int MasterI2Ccom::rotate(double deg ){
  */
 int MasterI2Ccom::forward(double meters){
     //TODO
+    printf("TODO\n");
 }
 
 /**
@@ -610,6 +617,7 @@ int MasterI2Ccom::forward(double meters){
  */
 int MasterI2Ccom::hover(){
     //TODO
+    printf("TODO\n");
 }
 
 //###################################END some generic flight commands
@@ -673,10 +681,26 @@ int MasterI2Ccom::navToPoint(Node* navPoint){
  */
 Node* MasterI2Ccom::getNextNavPoint( Node* finish){
     std::vector<Node*> theChosenPath;
+    int pathSize;
+    
+    gridMap->clearParents();
+    
+    //TODO figure out why if I don't have this update.. a segfault is made in this funct
+    cur_pos = gridMap->getNode(cur_pos->getXcoord(), cur_pos->getYcoord() );
+    //cur_pos->printNodeCord();
+    finish = gridMap->getNode(finish->getXcoord(), finish->getYcoord() );
+    //finish->printNodeCord();
+    ///end todo error?
     if((cur_pos!=NULL) &&(finish!=NULL)) {
-       theChosenPath = map->findPath(cur_pos,finish); //get shortest path
-        if (theChosenPath.size() >0) { //TODO make sure this doesn't error
-            return theChosenPath.at(0);
+        //printf("neither start nor finished is NULL\n");
+        theChosenPath = gridMap->findPath(cur_pos,finish); //get shortest path
+        pathSize = theChosenPath.size();
+        //printf("got the shortest path size: %d\n", pathSize );
+        if (pathSize >0) { //TODO make sure this doesn't error
+            //printf("the chosen path is not empty, returning non-NULL\n");
+            return theChosenPath.at(pathSize-1); //the path is in reverse order
+        }else {
+            printf("MasterI2Ccom::getNextNavPoint: shortest path is 0, no path or already there\n");
         }
     }
     return NULL;
@@ -1022,21 +1046,31 @@ int main () {
     MasterI2Ccom nav = MasterI2Ccom();	//main interface
     nav.openi2cBus();                   //open i2c device
     //start baro continous readings
-    nav.startBaroThread();
+    if (nav.geti2cComStatus() & COMSTATUS_BARO){
+        //ok to set baro thread for it is calibrated on online
+        nav.startBaroThread();
+    }
     
     //temp cyclic executive
     for (int i= 0; i<NUM_SUB_TARGETS; i++) {
         //while not there...
         //get next discrete point
+        printf("Getting %d subTarget Location for path planning\n",i+1);
         target = nav.getSubtarget (i);
+        target->printNodeCord();
+        //printf("getting next nav point node ptr\n");
         next = nav.getNextNavPoint(target);
+        //printf("Going into while loop\n");
         while (next != NULL) {
+            printf("got next node, but checking if there is a map update\n");
             //update Map
             updateStatus = nav.updateMap();
             //get next point, if changed
             if (updateStatus) {
                 next =nav.getNextNavPoint(target);
             }
+            printf("got shortest path's next point\n");
+            next->printNodeCord();
             //nav to next point
             nav.navToPoint(next);
             //update cur_pos, TEMP
@@ -1046,6 +1080,7 @@ int main () {
         }
         
     }
+    Printf("Done with navigation program\n");
 
     nav.closei2cBus();
     return 1;

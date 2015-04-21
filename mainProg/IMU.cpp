@@ -24,6 +24,7 @@ IMU::IMU(int e_i2c_bus_handler,std::recursive_mutex* e_dev_handle_mutex ) {
     com_acc.set_dev_mutex(dev_handle_mutex_ptr);//pass dev handle mutex pointer
     if ( com_acc.begin() ) {
         printf("IMU::IMU: LSM303 module configured\n");
+        comStatus |= COMSTATUS_COM_ACC;
     }else {
         printf("IMU::IMU: Couldn't configure LSM303\n");
     }
@@ -34,6 +35,7 @@ IMU::IMU(int e_i2c_bus_handler,std::recursive_mutex* e_dev_handle_mutex ) {
     if (baro.begin()) {
         printf("IMU::IMU: BMP180 module configued\n");
         c_base_alt = baro.base_alt;
+        comStatus |= COMSTATUS_BARO;
     } else {
         printf("IMU::IMU: Couldn't configure BMP180\n");
     }
@@ -43,6 +45,7 @@ IMU::IMU(int e_i2c_bus_handler,std::recursive_mutex* e_dev_handle_mutex ) {
     gyro.set_dev_mutex(dev_handle_mutex_ptr); //pass the dev handle mutex pointer
     if (gyro.begin()) {
         printf("IMU::IMU: L3GD20 module configued\n");
+        comStatus |= COMSTATUS_GYRO;
     } else {
         printf("IMU::IMU: Couldn't configure L3GD20\n");
     }

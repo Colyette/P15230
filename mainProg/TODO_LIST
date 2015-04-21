@@ -6,4 +6,4 @@
 //Start Hover command
 //Start Forward command
 //start reverse biasing to fix drift after commands stop
-
+//account for i2c failure (set/unset component flags when there is a r/w err)

@@ -411,7 +411,7 @@ uint8_t Adafruit_BMP085::write8(uint8_t a, uint8_t d) {
     if ( write(dev_handle,buffer, 2 ) != 2 ){
         err = errno ;
         printf("ADXL345::writeRegister: change write register address: errno %d\n",err);
-        return false;
+        return (-1);
     }
 
     return 1;
