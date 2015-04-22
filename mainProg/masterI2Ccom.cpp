@@ -124,6 +124,9 @@ MasterI2Ccom:: MasterI2Ccom(){
     subTargetList.push_back(gridMap->getNode(T3_X,T3_Y));
     subTargetList.push_back(gridMap->getNode(T4_X,T4_Y));
     printf("MasterI2cCom:: gridMap initialized with referenced subtargetlist \n");
+    cur_pos = gridMap-> getNode(0,0); //TODO remove
+//    cur_x_pos = 2;
+//    cur_y_pos = 2;
     
 }
 
@@ -352,60 +355,117 @@ int MasterI2Ccom::updateMap(){
     SonarReqPkt sPkt;
     Node * n1;
     Node * n2; //for removing edges
-    int alpha;    //offset
+    double alpha;    //offset
     int n_1_x,n_1_y,n_2_x, n_2_y; //for mapping node coordinates
     int updateflg=0;
+    int c_x,c_y;
     
     if (requestSonar(&sPkt) <1) {
         printf("MasterI2cCom::updateMap() error requesting sensor reading pkt\n");
         return -1;
     }
+    c_x = cur_pos->getXcoord();
+    c_y = cur_pos->getYcoord();
     
-    //blklist left detection
-    alpha = floor (sPkt.sonar1*100/RESOLUTION);
-    n_1_x = cur_x_pos - alpha;
-    n_2_x = cur_x_pos- (alpha-1);
-    n_1_y = cur_y_pos;
-    n_2_y = cur_y_pos;
-    if ( n_1_x >= 0) { //valid nodes to remove
-        n1 = gridMap->getNode(n_1_y,n_1_y);
-        n2 = gridMap->getNode(n_2_x,n_2_y);
-        if (gridMap->removeEdge(n1,n2) ){
-            printf("Removed edge from N(%d,%d) to N(%d,%d)\n",n_1_x,n_1_y,n_2_x,n_2_y);
-            updateflg |=0x02;
+    //TODO check sonar ranges
+    if ((sPkt.sonar1 >0x3) ) {
+        //blklist left detection
+        alpha = floor( (((float)sPkt.sonar1)/100)/RESOLUTION   );
+        n_1_x = c_x + alpha;
+        n_2_x = c_x + (alpha-1);
+        n_1_y = c_y;
+        n_2_y = c_y;
+        if ( (n_1_x >= 0)  && (n_2_x<=COURSE_X_DIM)) { //valid nodes to remove
+            n1 = gridMap->getNode(n_1_x,n_1_y);
+            n2 = gridMap->getNode(n_2_x,n_2_y);
+            
+            printf("S1-Left\n");
+            if ((n1!=NULL) && (n2!=NULL) ) {
+                n1->printNodeCord();
+                n2->printNodeCord();
+                
+                if (gridMap->removeEdge(n1,n2) ){
+                    printf("MasterI2Ccom::updateMap: Removed edge from N(%d,%d) to N(%d,%d)~~~~~~~~\n",n_1_x,n_1_y,n_2_x,n_2_y);
+                    updateflg |=0x02;
+                }
+            }else { //else not valid node
+                printf("MasterI2Ccom::updateMap: Invalid edges\n");
+            }
+            
         }
+    }else{
+        //not in detection range for sonar, ignore
+        printf("ignore Left sonar\n");
     }
     
-    //blklist right detection
-    alpha = floor (sPkt.sonar2*100/RESOLUTION);
-    n_1_x = cur_x_pos + alpha;
-    n_2_x = cur_x_pos + (alpha-1);
-    n_1_y = cur_y_pos;
-    n_2_y = cur_y_pos;
-    if ( n_1_x <= COURSE_X_DIM) { //valid nodes to remove
-        n1 = gridMap->getNode(n_1_y,n_1_y);
-        n2 = gridMap->getNode(n_2_x,n_2_y);
-        if (gridMap->removeEdge(n1,n2) ){
-            printf("Removed edge from N(%d,%d) to N(%d,%d)\n",n_1_x,n_1_y,n_2_x,n_2_y);
-             updateflg |=0x04;
+    
+    //TODO check sonar ranges
+    if ((sPkt.sonar2 >0x3)) {
+//        printf("%f\n",((float)sPkt.sonar2));
+        //blklist right detection
+        alpha = floor ( ( ((float)sPkt.sonar2)/100)/RESOLUTION);
+//        printf("alpha:%f\n",alpha);
+        n_1_x = c_x - alpha;
+        n_2_x = c_x - (alpha-1);
+        n_1_y = c_y;
+        n_2_y = c_y;
+        if ( (n_2_x <= COURSE_X_DIM) && (n_1_x >=0) ) { //valid nodes to remove
+//            printf("getting (%d,%d)\n",n_1_x,n_1_y);
+            n1 = gridMap->getNode(n_1_x,n_1_y);
+//            printf("getting (%d,%d)\n",n_2_x,n_2_y);
+            n2 = gridMap->getNode(n_2_x,n_2_y);
+            
+            printf("S2-Right\n");
+            if ((n1!=NULL) && (n2!=NULL) ) {
+                n1->printNodeCord();
+                n2->printNodeCord();
+                
+                if (gridMap->removeEdge(n1,n2) ){
+                    printf("MasterI2Ccom::updateMap: Removed edge from N(%d,%d) to N(%d,%d)~~~~~~~~\n",n_1_x,n_1_y,n_2_x,n_2_y);
+                     updateflg |=0x04;
+                }
+            }else { //else not valid node
+                printf("MasterI2Ccom::updateMap: Invalid edges\n");
+            }
+        }else{
+//            printf("some range error in right sonar checking\n");
+//            printf("n1(%d,%d) n2(%d,%d)\n");
         }
+    }else{
+        //not in detection range for sonar, ignore
+        printf("ignore Right sonar\n");
     }
     
-    //blklist back detection, not really needed?
-    alpha = floor (sPkt.sonar3*100/RESOLUTION);
-    n_1_x = cur_x_pos;
-    n_2_x = cur_x_pos;
-    n_1_y = cur_y_pos- alpha;
-    n_2_y = cur_y_pos- (alpha-1);
-    if ( n_1_x >= 0) { //valid nodes to remove
-        n1 = gridMap->getNode(n_1_y,n_1_y);
-        n2 = gridMap->getNode(n_2_x,n_2_y);
-        if (gridMap->removeEdge(n1,n2) ){
-            printf("Removed edge from N(%d,%d) to N(%d,%d)\n",n_1_x,n_1_y,n_2_x,n_2_y);
-             updateflg |=0x08;
+    //TODO check sonar ranges
+    if ((sPkt.sonar3 > 0x3) ) {
+        //blklist back detection, not really needed?
+        alpha = floor (   ( ( (float)sPkt.sonar3)/100)/RESOLUTION);
+        n_1_x = c_x;
+        n_2_x = c_x;
+        n_1_y = c_y + alpha;
+        n_2_y = c_y + (alpha-1);
+        if ( (n_1_y >= 0) && (n_2_y<= COURSE_Y_DIM)) { //valid nodes to remove
+            n1 = gridMap->getNode(n_1_x,n_1_y);
+            n2 = gridMap->getNode(n_2_x,n_2_y);
+            
+            printf("S3-Back\n");
+            if ((n1!=NULL) && (n2!=NULL) ) {
+                n1->printNodeCord();
+                n2->printNodeCord();
+                
+                if (gridMap->removeEdge(n1,n2) ){
+                    printf("MasterI2Ccom::updateMap: Removed edge from N(%d,%d) to N(%d,%d)~~~~~~~~\n",n_1_x,n_1_y,n_2_x,n_2_y);
+                     updateflg |=0x08;
+                }
+            }else { //else not valid node
+                printf("MasterI2Ccom::updateMap: Invalid edges derived\n");
+            }
         }
+    }else{
+    //not in detection range for sonar, ignore
+        printf("ignore back sonar\n");
     }
-    
+
     //do lidar stuff!
     if (updateLIDAR() ) {
         updateflg |= 0x01;
@@ -687,17 +747,19 @@ Node* MasterI2Ccom::getNextNavPoint( Node* finish){
     
     //TODO figure out why if I don't have this update.. a segfault is made in this funct
     cur_pos = gridMap->getNode(cur_pos->getXcoord(), cur_pos->getYcoord() );
-    //cur_pos->printNodeCord();
+    printf("current:");
+    cur_pos->printNodeCord();
     finish = gridMap->getNode(finish->getXcoord(), finish->getYcoord() );
-    //finish->printNodeCord();
+    printf("target:");
+    finish->printNodeCord();
     ///end todo error?
     if((cur_pos!=NULL) &&(finish!=NULL)) {
-        //printf("neither start nor finished is NULL\n");
+        printf("neither start nor finished is NULL\n");
         theChosenPath = gridMap->findPath(cur_pos,finish); //get shortest path
         pathSize = theChosenPath.size();
-        //printf("got the shortest path size: %d\n", pathSize );
+        printf("got the shortest path size: %d\n", pathSize );
         if (pathSize >0) { //TODO make sure this doesn't error
-            //printf("the chosen path is not empty, returning non-NULL\n");
+            printf("the chosen path is not empty, returning non-NULL\n");
             return theChosenPath.at(pathSize-1); //the path is in reverse order
         }else {
             printf("MasterI2Ccom::getNextNavPoint: shortest path is 0, no path or already there\n");
@@ -1050,9 +1112,9 @@ int main () {
         //ok to set baro thread for it is calibrated on online
         nav.startBaroThread();
     }
-    
+    printf("\n\n-----------------------------------------------\n");
     //temp cyclic executive
-    for (int i= 0; i<NUM_SUB_TARGETS; i++) {
+    for (int i= 0; i<2; i++) { //NUM_SUB_TARGETS
         //while not there...
         //get next discrete point
         printf("Getting %d subTarget Location for path planning\n",i+1);
@@ -1062,23 +1124,29 @@ int main () {
         next = nav.getNextNavPoint(target);
         //printf("Going into while loop\n");
         while (next != NULL) {
-            printf("got next node, but checking if there is a map update\n");
+            printf("checking if there is a map update\n");
             //update Map
             updateStatus = nav.updateMap();
             //get next point, if changed
             if (updateStatus) {
                 next =nav.getNextNavPoint(target);
             }
-            printf("got shortest path's next point\n");
-            next->printNodeCord();
-            //nav to next point
-            nav.navToPoint(next);
-            //update cur_pos, TEMP
-            nav.set_cur_pos(next);
-            //update next
-            next = nav.getNextNavPoint(target);
+            if (next !=NULL) {
+                printf("got shortest path's next point:");
+                
+                next->printNodeCord();
+                //nav to next point
+                nav.navToPoint(next);
+                //update cur_pos, TEMP
+                nav.set_cur_pos(next);
+                //update next
+                next = nav.getNextNavPoint(target);
+            }else{
+                printf("!!!no next node to navigate to!!!\n");
+            }
+            
         }
-        
+        printf("---------Reached Target %d---------\n",i+1);
     }
     printf("Done with navigation program\n");
 
