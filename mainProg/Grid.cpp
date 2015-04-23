@@ -262,11 +262,11 @@ std::vector<Node*> Grid::findPath(Node* S, Node* T){
                 neighbors.at(n)->g_cost = curNode->g_cost+resolution; // add the cost to this node
                 //cal f
                 neighbors.at(n)->f_cost = neighbors.at(n)->h_cost+ neighbors.at(n)->g_cost;
-//#ifdef TEST_GRID
-//               neighbors.at(n)->printData();
-//#elif defined (FLIGHT_DEBUG)
+#ifdef TEST_GRID
+               neighbors.at(n)->printData();
+#elif defined (FLIGHT_DEBUG)
                 neighbors.at(n)->printData();
-//#endif
+#endif
                 
                 // save the min cost node to jump to next
                 if ((minCost<0) || (minCost > neighbors.at(n)->f_cost)) {

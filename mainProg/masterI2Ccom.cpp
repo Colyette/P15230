@@ -186,6 +186,9 @@ int MasterI2Ccom::openi2cBus() {
             if (!_calibrateOrientaion()) { //
                 printf("MasterI2Ccom::openi2cBus(): couldn't calibrate orientation\n");
                 //TODO handle
+                //update enum to UP
+                xHeading= UPH;
+                
             }
         }
 	}
@@ -360,15 +363,63 @@ int MasterI2Ccom::updateMap(){
     int updateflg=0;
     int c_x,c_y;
     
+    uint16_t sLeft,sRight,sBack,sUp;
+    
     if (requestSonar(&sPkt) <1) {
         printf("MasterI2cCom::updateMap() error requesting sensor reading pkt\n");
         return -1;
+//        printf("simulating right sonar detect\n");
+        //Simulating constant right sensing
+//        if (cur_pos ->getYcoord() > 15) {
+//            sPkt.sonar2 =0;
+//            sPkt.sonar1 =0;
+//            sPkt.sonar3 =0;
+//        }else {
+//            sPkt.sonar2 = 70;
+//            sPkt.sonar1 =0;
+//            sPkt.sonar3 =0;
+//        }
+//        printf("Left Sonar:%dcm\n",sPkt.sonar1);
+//        printf("Right Sonar:%dcm\n",sPkt.sonar2);
+//        printf("Back Sonar:%dcm\n",sPkt.sonar3);
     }
     c_x = cur_pos->getXcoord();
     c_y = cur_pos->getYcoord();
     
+    //RE-ORIENT sensors....
+    printf("xHeading:%d\n",xHeading);
+    switch (xHeading) {
+        case UPH:
+            sLeft = sPkt.sonar1;
+            sRight = sPkt.sonar2;
+            sBack = sPkt.sonar3;
+            sUp = 0;
+            break;
+        case DOWNH:
+            sLeft = sPkt.sonar2;
+            sRight = sPkt.sonar1;
+            sBack = 0;
+            sUp = sPkt.sonar3;
+            break;
+        case LEFTH:
+            sLeft = 0;
+            sRight = sPkt.sonar3;
+            sBack = sPkt.sonar1;
+            sUp = sPkt.sonar2;
+            break;
+        case RIGHTH:
+            sLeft = sPkt.sonar3;
+            sRight = 0;
+            sBack = sPkt.sonar2;
+            sUp = sPkt.sonar1;
+            break;
+        default:
+            break;
+    }
+    
+    
     //TODO check sonar ranges
-    if ((sPkt.sonar1 >0x3) ) {
+    if ((sLeft >0x3) ) { //left of map
         //blklist left detection
         alpha = floor( (((float)sPkt.sonar1)/100)/RESOLUTION   );
         n_1_x = c_x + alpha;
@@ -385,7 +436,7 @@ int MasterI2Ccom::updateMap(){
                 n2->printNodeCord();
                 
                 if (gridMap->removeEdge(n1,n2) ){
-                    printf("MasterI2Ccom::updateMap: Removed edge from N(%d,%d) to N(%d,%d)~~~~~~~~\n",n_1_x,n_1_y,n_2_x,n_2_y);
+                    printf("MasterI2Ccom::updateMap: L Removed edge from N(%d,%d) to N(%d,%d)~~~~~~~~\n",n_1_x,n_1_y,n_2_x,n_2_y);
                     updateflg |=0x02;
                 }
             }else { //else not valid node
@@ -400,7 +451,7 @@ int MasterI2Ccom::updateMap(){
     
     
     //TODO check sonar ranges
-    if ((sPkt.sonar2 >0x3)) {
+    if ((sRight >0x3)) { // right of map
 //        printf("%f\n",((float)sPkt.sonar2));
         //blklist right detection
         alpha = floor ( ( ((float)sPkt.sonar2)/100)/RESOLUTION);
@@ -421,7 +472,7 @@ int MasterI2Ccom::updateMap(){
                 n2->printNodeCord();
                 
                 if (gridMap->removeEdge(n1,n2) ){
-                    printf("MasterI2Ccom::updateMap: Removed edge from N(%d,%d) to N(%d,%d)~~~~~~~~\n",n_1_x,n_1_y,n_2_x,n_2_y);
+                    printf("MasterI2Ccom::updateMap: R Removed edge from N(%d,%d) to N(%d,%d)~~~~~~~~\n",n_1_x,n_1_y,n_2_x,n_2_y);
                      updateflg |=0x04;
                 }
             }else { //else not valid node
@@ -433,11 +484,11 @@ int MasterI2Ccom::updateMap(){
         }
     }else{
         //not in detection range for sonar, ignore
-        printf("ignore Right sonar\n");
+        printf("ignore Right detection\n");
     }
     
     //TODO check sonar ranges
-    if ((sPkt.sonar3 > 0x3) ) {
+    if ((sBack > 0x3) ) { //back of map
         //blklist back detection, not really needed?
         alpha = floor (   ( ( (float)sPkt.sonar3)/100)/RESOLUTION);
         n_1_x = c_x;
@@ -454,7 +505,7 @@ int MasterI2Ccom::updateMap(){
                 n2->printNodeCord();
                 
                 if (gridMap->removeEdge(n1,n2) ){
-                    printf("MasterI2Ccom::updateMap: Removed edge from N(%d,%d) to N(%d,%d)~~~~~~~~\n",n_1_x,n_1_y,n_2_x,n_2_y);
+                    printf("MasterI2Ccom::updateMap:B Removed edge from N(%d,%d) to N(%d,%d)~~~~~~~~\n",n_1_x,n_1_y,n_2_x,n_2_y);
                      updateflg |=0x08;
                 }
             }else { //else not valid node
@@ -463,7 +514,37 @@ int MasterI2Ccom::updateMap(){
         }
     }else{
     //not in detection range for sonar, ignore
-        printf("ignore back sonar\n");
+        printf("ignore back detection\n");
+    }
+    
+    //TODO check sonar ranges
+    if ((sUp > 0x3) ) { //up of map
+        //blklist back detection, not really needed?
+        alpha = floor (   ( ( (float)sPkt.sonar3)/100)/RESOLUTION);
+        n_1_x = c_x;
+        n_2_x = c_x;
+        n_1_y = c_y - alpha;
+        n_2_y = c_y - (alpha-1);
+        if ( (n_1_y >= 0) && (n_2_y<= COURSE_Y_DIM)) { //valid nodes to remove
+            n1 = gridMap->getNode(n_1_x,n_1_y);
+            n2 = gridMap->getNode(n_2_x,n_2_y);
+            
+            printf("S3-Back\n");
+            if ((n1!=NULL) && (n2!=NULL) ) {
+                n1->printNodeCord();
+                n2->printNodeCord();
+                
+                if (gridMap->removeEdge(n1,n2) ){
+                    printf("MasterI2Ccom::updateMap: U Removed edge from N(%d,%d) to N(%d,%d)~~~~~~~~\n",n_1_x,n_1_y,n_2_x,n_2_y);
+                    updateflg |=0x08;
+                }
+            }else { //else not valid node
+                printf("MasterI2Ccom::updateMap: Invalid edges derived\n");
+            }
+        }
+    }else{
+        //not in detection range for sonar, ignore
+        printf("ignore up detection\n");
     }
 
     //do lidar stuff!
@@ -670,7 +751,7 @@ int MasterI2Ccom::rotate(double deg ){
 int MasterI2Ccom::forward(double meters){
     //TODO
     printf("TODO\n");
-    ::sleep(1);
+    //::sleep(1);
 }
 
 /**
@@ -691,8 +772,10 @@ int MasterI2Ccom::navToPoint(Node* navPoint){
     //TODO MAYBE CHECK FOR OBJECT UPDATES HERE...
     if (navPoint == cur_pos->getNeighbor(UP)) { //up neighbor is next
         printf("Turning Forward\n");
-        //rotate up
+        //rotate up, but are we up?
         rotate(upHeading);
+        //set cur heading-ish enum
+        xHeading=UPH;
         //go forward
         printf("Going forward %dm\n",RESOLUTION);
         forward(RESOLUTION);
@@ -700,9 +783,11 @@ int MasterI2Ccom::navToPoint(Node* navPoint){
         hover();
     }
     else if (navPoint == cur_pos->getNeighbor(DOWN)){
-        printf("Turning 180\n");
+        printf("Turning Down\n");
         //rotate back
         rotate(downHeading);
+        //set cur heading-ish enum
+        xHeading=DOWNH;
         //go forward
         printf("Going forward %dm\n",RESOLUTION);
         forward(RESOLUTION);
@@ -713,6 +798,8 @@ int MasterI2Ccom::navToPoint(Node* navPoint){
         printf("Turning left\n");
         //rotate left
         rotate(leftHeading);
+        //set cur heading-ish enum
+        xHeading=LEFTH;
         //go forward
          printf("Going forward %dm\n",RESOLUTION);
         forward(RESOLUTION);
@@ -723,6 +810,8 @@ int MasterI2Ccom::navToPoint(Node* navPoint){
         printf("Turning right\n");
         //rotate right
         rotate(rightHeading);
+        //set cur heading-ish enum
+        xHeading=RIGHTH;
         //go forward
         printf("Going forward %dm\n",RESOLUTION);
         forward(RESOLUTION);

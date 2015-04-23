@@ -171,8 +171,14 @@ public:
      */
     uint8_t geti2cComStatus(){return i2cComStatus;}
     
+    //used for the craft to know what is the current orientation for object
+    //detection map update
+    enum static_orient {UPH,DOWNH,LEFTH,RIGHTH} static_orient_t;
+    
 private:
 	
+    static_orient xHeading;
+    
 	/**
 	 * device handle for the i2c bus
 	 */
