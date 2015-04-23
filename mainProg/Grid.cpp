@@ -247,6 +247,8 @@ std::vector<Node*> Grid::findPath(Node* S, Node* T){
         allNull = true;
         minCost=-1;
         neighbors = curNode->getNeighbors();
+        neighbor_minCost=NULL;
+        //printf("(%d,%d) neighbor size %d\n",curNode->getXcoord(),curNode->getYcoord(), neighbors.size());
         for (int n=0; n<neighbors.size(); n++) {
             if (neighbors.at(n)!=NULL) {
                 allNull = false;    //there was atleast one place to go
@@ -260,29 +262,60 @@ std::vector<Node*> Grid::findPath(Node* S, Node* T){
                 neighbors.at(n)->g_cost = curNode->g_cost+resolution; // add the cost to this node
                 //cal f
                 neighbors.at(n)->f_cost = neighbors.at(n)->h_cost+ neighbors.at(n)->g_cost;
-#ifdef TEST_GRID
-//                neighbors.at(n)->printData();
-#endif
+//#ifdef TEST_GRID
+//               neighbors.at(n)->printData();
+//#elif defined (FLIGHT_DEBUG)
+                neighbors.at(n)->printData();
+//#endif
                 
                 // save the min cost node to jump to next
                 if ((minCost<0) || (minCost > neighbors.at(n)->f_cost)) {
+                    if ( (neighbors.at(n))->visited !=true ) {
+                        minCost = neighbors.at(n)->f_cost;
+                        neighbor_minCost=neighbors.at(n);
+#ifdef FLIGHT_DEBUG
+                        printf("got a min (%d,%d)\n",neighbors.at(n)->getXcoord(),neighbors.at(n)->getYcoord());
+#endif
+                    }
                     
-                    minCost = neighbors.at(n)->f_cost;
-                    neighbor_minCost=neighbors.at(n);
+                }
+                else {
+//                    printf("current");
+//                    curNode->printNodeCord();
+//                    printf("neighborcheck");
+//                    (neighbors.at(n))->printNodeCord();
+//                    printf("min cost NULL\n");
                 }
             }//else not a valid neighbor of the current node
+            
+            
         } //checked all neighbors
+        if (allNull) {
+           // printf("(%d,%d) has all NULL neighbors\n");
+        }
         //pick min cost as next
         if(neighbor_minCost !=NULL) {
-//            printf("From ");
-//            curNode->printNodeCord();
+#ifdef FLIGHT_DEBUG
+            printf("From ");
+            curNode->printNodeCord();
+#endif
+    
             curNode->forward = neighbor_minCost; //TODO might not be required
             prev_Node = curNode;
+            //mark as visited
+            curNode->visited = true;
             curNode = neighbor_minCost;
-//            printf("-> To ");
-//            curNode->printNodeCord();
+#ifdef FLIGHT_DEBUG
+            printf("-> To ");
+            curNode->printNodeCord();
+#endif
+            
   
 
+        }else{
+            printf("Need to backtrack?\n");
+            curNode->visited=true;
+            curNode = curNode->backward;
         }
         //if the heuristic is zero, we're at the sink node
         if (curNode->h_cost ==0) {
@@ -320,7 +353,8 @@ std::vector<Node*> Grid::findPath(Node* S, Node* T){
 
 /**
  *
- * removes the tracking left by the node
+ * \brief removes the tracking left by the node
+ * also removes visited boolean....
  */
 void Grid::clearParents(){
     Node * temp;
@@ -330,6 +364,7 @@ void Grid::clearParents(){
             temp = (map.at(x)).at(y);
             temp->forward = NULL;
             temp->backward = NULL;
+            temp->visited = false;
         }
         
     }
@@ -427,6 +462,71 @@ int main() {
     }
     grid.printPath();
     
+
+    
+    return 0;
+}
+#elif defined(FLIGHT_DEBUG) // error during implementations testing
+int main() {
+    std::vector<Node*> theChosenPath;
+    // using course dimensions full field 200'x85'
+    Node* start;
+    Node* finish;
+    int i;
+    
+    Grid grid(85,85,1);// testing square section of 1 foot resolution
+    printf("#####################adding all initial Nodes to Grid####################\n");
+    grid.initializeGrid();
+    printf("##################adding all initial neighbors to Nodes#################\n");
+    grid.add_neighbors();
+    printf("##################removing edges troubling with##################\n");
+    
+    //errors when the shortest next target is blacklisted...
+    for(i =0; i<11;i++) { //errors when these edges are removed from navigating to first target
+        start = grid.getNode(0,i);
+        finish = grid.getNode(1,i);
+        grid.removeEdge(start,finish);
+    }
+    
+    
+    
+    
+    
+    printf("##################Lets Path (0,0) to (10,10)#################\n");
+    start = grid.getNode(0,0);
+    finish = grid.getNode(10,10);
+    if((start!=NULL) &&(finish!=NULL)) {
+        grid.findPath(start,finish);
+    }
+    grid.printPath();
+    
+    //clear navigation... may need to specifically tune/update for consecutive passes
+    grid.clearParents();
+    
+    printf("##################Lets Path (0,10) to (10,10)#################\n");
+    start = grid.getNode(0,10);
+    finish = grid.getNode(10,10);
+    if((start!=NULL) &&(finish!=NULL)) {
+        grid.findPath(start,finish);
+    }
+    grid.printPath();
+    
+    //clear navigation... may need to specifically tune/update for consecutive passes
+    grid.clearParents();
+    
+    printf("##################Lets Path (0,11) to (10,10)#################\n");
+    start = grid.getNode(0,11);
+    finish = grid.getNode(10,10);
+    if((start!=NULL) &&(finish!=NULL)) {
+        grid.findPath(start,finish);
+    }
+    grid.printPath();
+    
+    //clear navigation... may need to specifically tune/update for consecutive passes
+    grid.clearParents();
+    
+    
+
     return 0;
 }
 #endif

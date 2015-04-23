@@ -670,6 +670,7 @@ int MasterI2Ccom::rotate(double deg ){
 int MasterI2Ccom::forward(double meters){
     //TODO
     printf("TODO\n");
+    ::sleep(1);
 }
 
 /**
@@ -759,6 +760,7 @@ Node* MasterI2Ccom::getNextNavPoint( Node* finish){
         pathSize = theChosenPath.size();
         printf("got the shortest path size: %d\n", pathSize );
         if (pathSize >0) { //TODO make sure this doesn't error
+            gridMap->printPath();
             printf("the chosen path is not empty, returning non-NULL\n");
             return theChosenPath.at(pathSize-1); //the path is in reverse order
         }else {
@@ -1117,7 +1119,7 @@ int main () {
     for (int i= 0; i<2; i++) { //NUM_SUB_TARGETS
         //while not there...
         //get next discrete point
-        printf("Getting %d subTarget Location for path planning\n",i+1);
+        printf("Getting Target %d Location for path planning\n",i+1);
         target = nav.getSubtarget (i);
         target->printNodeCord();
         //printf("getting next nav point node ptr\n");
@@ -1132,7 +1134,7 @@ int main () {
                 next =nav.getNextNavPoint(target);
             }
             if (next !=NULL) {
-                printf("got shortest path's next point:");
+                printf("got shortest path's next point:\t\t\t");
                 
                 next->printNodeCord();
                 //nav to next point
@@ -1146,7 +1148,7 @@ int main () {
             }
             
         }
-        printf("---------Reached Target %d---------\n",i+1);
+        printf("---------Reached Target %d---------\n\n",i+1);
     }
     printf("Done with navigation program\n");
 

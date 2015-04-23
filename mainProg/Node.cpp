@@ -42,6 +42,7 @@ Node::Node(int pos_x,int pos_y) {
     this->h_cost=0;
     this->g_cost=0;
     this->f_cost=0;
+    this->visited = false;
 }
 
 /**
@@ -155,7 +156,7 @@ void Node::printNeighbors() {
  * easy to read print of data for the node
  */
 void Node::printData(){
-    printf("Node (%d,%d):= h:%f g%f f:%f\n",x_coord,y_coord,h_cost,g_cost,f_cost);
+    printf("Node (%d,%d):= h:%f g%f f:%f v:%d\n",x_coord,y_coord,h_cost,g_cost,f_cost,visited);
     
 }
 

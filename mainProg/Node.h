@@ -170,6 +170,8 @@ public:
      */
     void printData();
     
+    bool visited;
+    
 };
 
 #endif /* defined(____Node__) */

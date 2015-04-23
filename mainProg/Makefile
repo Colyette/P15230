@@ -73,6 +73,15 @@ clean:
 	rm *.o
 	rm lmnoCopter
 
+
+test_grid: Node.cpp Grid.cpp
+	g++ -D TEST_GRID -o testg Node.cpp Grid.cpp
+	./testg
+
+test_path_prob: Node.cpp Grid.cpp
+	g++ -D FLIGHT_DEBUG -o testg Node.cpp Grid.cpp
+	./testg
+
 #.PHONY: clean
 
 #clean:
