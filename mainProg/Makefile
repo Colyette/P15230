@@ -69,6 +69,11 @@ all: masterI2Ccom.cpp Node.o Grid.o Adafruit_BMP085.o Adafruit_L3GD20.o Adafruit
 	g++ -D MAIN -g -c masterI2Ccom.cpp -o masterI2Ccom.o $(CFLAGS)
 	g++ -o lmnoCopter -lpthread masterI2Ccom.o Node.o Grid.o IMU.o Adafruit_LSM303.o Adafruit_BMP085.o Adafruit_L3GD20.o $(CFLAGS)
 
+avoidance: masterI2Ccom.cpp Node.o Grid.o Adafruit_BMP085.o Adafruit_L3GD20.o Adafruit_LSM303.o IMU.o
+	g++ -g -c jmPID.cpp -o pmPID.o $(CFLAGS) -lrt
+	g++ -D DISTANCE_LOCK -g -c masterI2Ccom.cpp -o masterI2Ccom.o $(CFLAGS)
+	g++ -o avoidance -lpthread masterI2Ccom.o Node.o Grid.o IMU.o Adafruit_LSM303.o Adafruit_BMP085.o Adafruit_L3GD20.o pmPID.o $(CFLAGS) -lrt
+
 clean:
 	rm *.o
 	rm lmnoCopter

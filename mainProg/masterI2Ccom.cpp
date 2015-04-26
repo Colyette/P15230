@@ -19,12 +19,15 @@
 #include "sharedi2cCom.h"
 //#include "ADXL345.h"    //accelerameter lib
 
+#include "jmPID.h" //may be compostie of class
+
 //inilize static mutex for I2C driver sharing
 std::recursive_mutex MasterI2Ccom::dev_handle_mutex;
 
 //#################################BEGIN For Running the Barometer reading thread
 #define NUM_SAMPLES (10) //number of samples to take before selecting median
 //#define AVERAGE
+
 /**
  * \brief serves as a helper function for multi-threading within the same class instance
  */
@@ -228,41 +231,49 @@ int MasterI2Ccom::requestSonar(SonarReqPkt * rPkt){
     uint32_t readData;
 
 	printf("requestSonar:: Requested packet\n");
+#ifndef NO_I2C
+    if (geti2cComStatus() & COMSTATUS_TEENSY) {
+#endif
+        std::unique_lock<std::recursive_mutex> lck(dev_handle_mutex);
 
-    std::unique_lock<std::recursive_mutex> lck(dev_handle_mutex);
-    
-	//point to sonar slave
-	if( ioctl( dev_handle, I2C_SLAVE, ppmArduinoAdd ) < 0 ){
-		err = errno ;
-		printf( "requestSonar:: I2C bus cannot point to Sonar Slave: errno %d \n",err);
-		return 0;
-	}
-	//TODO modify for receiving sonar packets
-	if (    write(dev_handle, &dumData, 1 ) != 1 ){
-		err = errno ;
-		printf("requestSonar:: Couldn't send sonar packet: errno %d\n",err);
-		return -1;
-	}	
-	::usleep(100000); //wait some time ::usleep(50000)
-    printf("Size of SonarReqPkt: %d\n",sizeof(SonarReqPkt));
-	if ((rec = ::read( dev_handle,rPkt, sizeof(SonarReqPkt) )) != sizeof(SonarReqPkt)  ) { // sized in bytes
-		err = errno ;
-                printf("requestSonar:: Couldn't get sonar packet: errno %d rec: %d\n",err,rec);
-                return -1;
-	}
+        //point to sonar slave
+        if( ioctl( dev_handle, I2C_SLAVE, ppmArduinoAdd ) < 0 ){
+            err = errno ;
+            printf( "requestSonar:: I2C bus cannot point to Sonar Slave: errno %d \n",err);
+            return 0;
+        }
+        //TODO modify for receiving sonar packets
+        if (    write(dev_handle, &dumData, 1 ) != 1 ){
+            err = errno ;
+            printf("requestSonar:: Couldn't send sonar packet: errno %d\n",err);
+            return -1;
+        }	
+        ::usleep(100000); //wait some time ::usleep(50000)
+        printf("Size of SonarReqPkt: %d\n",sizeof(SonarReqPkt));
+        if ((rec = ::read( dev_handle,rPkt, sizeof(SonarReqPkt) )) != sizeof(SonarReqPkt)  ) { // sized in bytes
+            err = errno ;
+                    printf("requestSonar:: Couldn't get sonar packet: errno %d rec: %d\n",err,rec);
+                    return -1;
+        }
 
-    //	printf("buff: 0x%x 0x%x 0x%x 0x%x 0x%x \n", mbuff[0], mbuff[1], mbuff[2], mbuff[3],mbuff[4]);
-    //	printf("packet: 0x%d 0x%d 0x%d 0x%d 0x%d \n", rPkt.header, rPkt.sonar1, rPkt.sonar2, rPkt.sonar3,rPkt.sonar4);
-    printf ("pkt #:%d\ns1:%dcm\ts2:%dcm\ts3:%dcm\ts4:%dcm\n cur:%fA\tvolt:%fV\n",
-            rPkt->header, (int16_t)rPkt->sonar1,(int16_t)rPkt->sonar2,(int16_t)rPkt->sonar3,(int16_t)rPkt->sonar4,
-            (double)rPkt->current, (double) rPkt->voltage); //TODO might changed from unsigned
+        //	printf("buff: 0x%x 0x%x 0x%x 0x%x 0x%x \n", mbuff[0], mbuff[1], mbuff[2], mbuff[3],mbuff[4]);
+        //	printf("packet: 0x%d 0x%d 0x%d 0x%d 0x%d \n", rPkt.header, rPkt.sonar1, rPkt.sonar2, rPkt.sonar3,rPkt.sonar4);
+        printf ("pkt #:%d\ns1:%dcm\ts2:%dcm\ts3:%dcm\ts4:%dcm\n cur:%fA\tvolt:%fV\n",
+                rPkt->header, (int16_t)rPkt->sonar1,(int16_t)rPkt->sonar2,(int16_t)rPkt->sonar3,(int16_t)rPkt->sonar4,
+                (double)rPkt->current, (double) rPkt->voltage); //TODO might changed from unsigned
 
-	//translate to packet, mbuff
-	//readData = (mbuff[0] <<24) || (mbuff[1] << 16) || (mbuff[2] <<8 ) || mbuff[3];
-//	printf("Read 0x%x \n",readData);
-	//printf("bytes: 0x%x%x%x%x \n", mbuff[0], mbuff[1], mbuff[2], mbuff[3]);
+        //translate to packet, mbuff
+        //readData = (mbuff[0] <<24) || (mbuff[1] << 16) || (mbuff[2] <<8 ) || mbuff[3];
+        //	printf("Read 0x%x \n",readData);
+        //printf("bytes: 0x%x%x%x%x \n", mbuff[0], mbuff[1], mbuff[2], mbuff[3]);
 
-	printf("requestSonar:: Received packet\n");
+        printf("RequestSonar:: Received packet\n");
+#ifndef NO_I2C
+    } else {
+        printf("RequestSonar:: Restart Program I2C Teensy link down\n");
+        return -1;
+    }
+#endif
 	return 1;
 }
 
@@ -275,33 +286,41 @@ int MasterI2Ccom::sendPPM(ReqPkt* rPkt){
     //TODO send a pkt to the movement
     //ReqPkt rPkt;
     int err,rec;
-    
-    std::unique_lock<std::recursive_mutex> lck(dev_handle_mutex);
-    
-    //point to sonar slave
-    if( ioctl( dev_handle, I2C_SLAVE, ppmArduinoAdd) < 0 ){
-        err = errno ;
-        printf( "sendPPM:: I2C bus cannot point to PPM Slave: errno %d \n",err);
-        return 0;
-    }
-    //TODO modify for receiving sonar packets
-    if (    write(dev_handle,rPkt, sizeof(ReqPkt) ) != sizeof(ReqPkt) ){
-        err = errno ;
-        printf("sendPPM:: Couldn't send flight request packet: errno %d\n",err);
+#ifndef NO_I2C
+    if (geti2cComStatus() & COMSTATUS_TEENSY) {
+#endif
+        std::unique_lock<std::recursive_mutex> lck(dev_handle_mutex);
+
+        //point to sonar slave
+        if( ioctl( dev_handle, I2C_SLAVE, ppmArduinoAdd) < 0 ){
+            err = errno ;
+            printf( "sendPPM:: I2C bus cannot point to PPM Slave: errno %d \n",err);
+            return 0;
+        }
+        //TODO modify for receiving sonar packets
+        if (    write(dev_handle,rPkt, sizeof(ReqPkt) ) != sizeof(ReqPkt) ){
+            err = errno ;
+            printf("sendPPM:: Couldn't send flight request packet: errno %d\n",err);
+            return -1;
+        }
+        ::usleep(1000);//::usleep(100000); //wait some time ::usleep(50000)
+        printf("Size of ReqPkt: %d\n",sizeof(ReqPkt));
+        if ((rec = ::read( dev_handle,rPkt, sizeof(ReqPkt) )) != sizeof(ReqPkt)  ) { // sized in bytes
+            err = errno ;
+            printf("sendPPM:: Couldn't get flight request packet reply: errno %d rec: %d\n",err,rec);
+            return -1;
+        }
+
+        printf ("header #:%d, throttle:%u, yaw:%u, pitch:%u, roll:%u\n", rPkt->header, rPkt->throttle,
+                rPkt->yaw,rPkt->pitch, rPkt->roll);
+
+        printf("sendPPM:: Received packet\n");
+#ifndef NO_I2C
+    } else {
+        printf("sendPPM:: Restart Program I2C Teensy link down\n");
         return -1;
     }
-    ::usleep(1000);//::usleep(100000); //wait some time ::usleep(50000)
-    printf("Size of ReqPkt: %d\n",sizeof(ReqPkt));
-    if ((rec = ::read( dev_handle,rPkt, sizeof(ReqPkt) )) != sizeof(ReqPkt)  ) { // sized in bytes
-        err = errno ;
-        printf("sendPPM:: Couldn't get flight request packet reply: errno %d rec: %d\n",err,rec);
-        return -1;
-    }
-    
-    printf ("header #:%d, throttle:%u, yaw:%u, pitch:%u, roll:%u\n", rPkt->header, rPkt->throttle,
-            rPkt->yaw,rPkt->pitch, rPkt->roll);
-    
-    printf("sendPPM:: Received packet\n");
+#endif
     return 1;
 }
 
@@ -1195,6 +1214,7 @@ int main () {
     Node* target;
     Node* next;
     int updateStatus;
+    
     ///
     MasterI2Ccom nav = MasterI2Ccom();	//main interface
     nav.openi2cBus();                   //open i2c device
@@ -1203,6 +1223,7 @@ int main () {
         //ok to set baro thread for it is calibrated on online
         nav.startBaroThread();
     }
+    
     printf("\n\n-----------------------------------------------\n");
     //temp cyclic executive
     for (int i= 0; i<2; i++) { //NUM_SUB_TARGETS
@@ -1244,4 +1265,82 @@ int main () {
     nav.closei2cBus();
     return 1;
 }
+#elif defined (DISTANCE_LOCK)
+
+void * demoProgramTimeOut(int runFlg) {
+    
+    return 0;
+}
+
+int main () {
+    
+    //TODO use PID class to dictate controls for distance locking
+    jmPID c_throttle = jmPID();
+    jmPID c_pitch = jmPID();
+    jmPID c_yaw = jmPID();
+    jmPID c_row = jmPID();
+    
+    int avoidanceDist = 1;
+    int diff=0;
+    
+    int demo=1; // run flg
+    pthread_t timingThread;
+    
+    //dum pkts
+    SonarReqPkt sPkt;
+    ReqPkt rPkt;
+    
+    ///
+    MasterI2Ccom nav = MasterI2Ccom();	//main interface
+    nav.openi2cBus();                   //open i2c device
+    //start baro continous readings
+    if (nav.geti2cComStatus() & COMSTATUS_BARO){
+        //ok to set baro thread for it is calibrated on online
+        nav.startBaroThread();
+    }
+    
+    //The tuning stuff
+    c_throttle.kPID(6.3, 2, 0); // Input your P, I, and D constants
+    c_pitch.kPID(6.3, 2, 0); // Input your P, I, and D constants
+   
+    c_yaw.kPID(6.3, 2, 0); // Input your P, I, and D constants
+    c_row.kPID(6.3, 2, 0); // Input your P, I, and D constants
+    
+    //launch copter
+   // nav.launch(1.5, 0.1); //lauch 1.5 meters
+    
+    //create timing mech
+//    if (pthread_create (&timingThread,NULL,demoProgramTimeOut, demo) {
+//        printf("trouble creating timing thread\nNot runing distance locking demo\n");
+//        return -1;
+//    }
+    
+    while (demo) { //TODO TIMING MECH TO STOP
+        // get sonar readings
+        nav.requestSonar( &sPkt);
+        // adjust SP from any too close sensings
+        //back
+        if ( (sPkt.sonar3 < 100) && (sPkt.sonar3 > 3) ) {
+            // get pid output
+            rPkt.throttle = c_throttle.run(sPkt.sonar3, 100); // Input your P, I, and D constants
+            rPkt.pitch = c_pitch.run(sPkt.sonar3,100);
+            rPkt.yaw = 1000; //default pos?
+            rPkt.roll = 1000; //default pos?
+            // give value to actuators
+            printf("\t\t\t\tSP:%d MP:%d T:%d P:%d\n",sPkt.sonar3, 1, rPkt.throttle, rPkt.pitch);
+            nav.sendPPM(&rPkt);
+        } else {
+            printf("Back sonar not in accountable range %dcm\n",sPkt);
+        }
+        
+        
+        
+    }
+    
+    
+    
+    return 1;
+    
+}
+
 #endif

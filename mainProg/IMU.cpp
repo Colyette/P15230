@@ -57,82 +57,118 @@ IMU::~IMU(){
 
 
 int IMU::getAccelerationValues(){
+#ifndef NO_I2C
+    if (getcomStatus() & COMSTATUS_COM_ACC) {
+#endif
     com_acc.readAccel(); //read values from component
     //assign locally
     a_x = com_acc.accelData.x;
     a_y= com_acc.accelData.y;
     a_z = com_acc.accelData.z;
     return 1; //TODO
+#ifndef NO_I2C
+    }else {
+        printf("IMU::getCompassValues(): Restart Program Com/Accel unit I2C link isn't assigned\n");
+        return false;
+    }
+#endif
 }
 
 bool IMU::getCompassValues(){
-    if ( !com_acc.readComp()) { //read values from component
-        printf("IMU::getCompassValues(): error on read\n");
+#ifndef NO_I2C
+    if (getcomStatus() & COMSTATUS_COM_ACC) {
+#endif
+        if ( !com_acc.readComp()) { //read values from component
+            printf("IMU::getCompassValues(): error on read\n");
+            return false;
+        }
+
+        //assign locally
+        c_x = com_acc.magData.x;
+        c_y= com_acc.magData.y;
+        c_z = com_acc.magData.z;
+
+        //calc heading
+        float Pi = 3.14159;
+
+        // Calculate the angle of the vector y,x
+        heading = (atan2(c_y,c_x) * 180) / Pi;
+        //conv to 360 deg (+)
+        if (heading <0) {
+            heading = heading +360;
+        }
+
+        return true;//TODO
+#ifndef NO_I2C
+    }else {
+        printf("IMU::getCompassValues(): Restart Program Com/Accel unit I2C link isn't assigned\n");
         return false;
     }
-    
-    //assign locally
-    c_x = com_acc.magData.x;
-    c_y= com_acc.magData.y;
-    c_z = com_acc.magData.z;
-    
-    //calc heading
-    float Pi = 3.14159;
-    
-    // Calculate the angle of the vector y,x
-    heading = (atan2(c_y,c_x) * 180) / Pi;
-    //conv to 360 deg (+)
-    if (heading <0) {
-        heading = heading +360;
-    }
-    
-    return true;//TODO
+#endif
 }
 
 int IMU::getAltitude(){
    // printf("Temperature = %f *C\n",baro.readTemperature());
+#ifndef NO_I2C
+    if (getcomStatus() & COMSTATUS_BARO) {
+#endif
     
-    
-//    Serial.print("Pressure = ");
-//    Serial.print(bmp.readPressure());
-//    Serial.println(" Pa");
-    temp = baro.readPressure();
-    //printf("Pressure = %d Pa\n",temp );
-    
-    // Calculate altitude assuming 'standard' barometric
-    // pressure of 1013.25 millibar = 101325 Pascal
-//    Serial.print("Altitude = ");
-//    Serial.print(bmp.readAltitude());
-//    Serial.println(" meters");
-    alt_m = baro.readAltitude();
-    //printf("Altitude = %f meters\n", alt_m);
-    
-//    Serial.print("Pressure at sealevel (calculated) = ");
-//    Serial.print(bmp.readSealevelPressure());
-//    Serial.println(" Pa");
-    slPressure = baro.readSealevelPressure();
-    //printf("Pressure at sealevel (calculated) = %d Pa\n", slPressure );
-    
-    // you can get a more precise measurement of altitude
-    // if you know the current sea level pressure which will
-    // vary with weather and such. If it is 1015 millibars
-    // that is equal to 101500 Pascals.
-//    Serial.print("Real altitude = ");
-//    Serial.print(bmp.readAltitude(101500));
-//    Serial.println(" meters");
-    r_alt_m = baro.readAltitude(101500);
-    //printf("Real altitude = %f meters\n",  r_alt_m);
-    
-    //Serial.println();
-    //delay(500);
-    
-    return 1;
+    //    Serial.print("Pressure = ");
+    //    Serial.print(bmp.readPressure());
+    //    Serial.println(" Pa");
+        temp = baro.readPressure();
+        //printf("Pressure = %d Pa\n",temp );
+        
+        // Calculate altitude assuming 'standard' barometric
+        // pressure of 1013.25 millibar = 101325 Pascal
+    //    Serial.print("Altitude = ");
+    //    Serial.print(bmp.readAltitude());
+    //    Serial.println(" meters");
+        alt_m = baro.readAltitude();
+        //printf("Altitude = %f meters\n", alt_m);
+        
+    //    Serial.print("Pressure at sealevel (calculated) = ");
+    //    Serial.print(bmp.readSealevelPressure());
+    //    Serial.println(" Pa");
+        slPressure = baro.readSealevelPressure();
+        //printf("Pressure at sealevel (calculated) = %d Pa\n", slPressure );
+        
+        // you can get a more precise measurement of altitude
+        // if you know the current sea level pressure which will
+        // vary with weather and such. If it is 1015 millibars
+        // that is equal to 101500 Pascals.
+    //    Serial.print("Real altitude = ");
+    //    Serial.print(bmp.readAltitude(101500));
+    //    Serial.println(" meters");
+        r_alt_m = baro.readAltitude(101500);
+        //printf("Real altitude = %f meters\n",  r_alt_m);
+        
+        //Serial.println();
+        //delay(500);
+        
+        return 1;
+#ifndef NO_I2C
+    } else {
+        printf("IMU:getAltitude(): Restart Program Baro unit I2C link isn't assigned\n");
+            return -1;
+        }
+#endif
 }
 
-int IMU::getGryoValues(){
-    gyro.read();
-    g_x = gyro.data.x;
-    g_y = gyro.data.y;
-    g_z = gyro.data.z;
-    return 1;
+int IMU::getGryoValues(){ //TODO spell right
+    
+#ifndef NO_I2C
+    if (getcomStatus() & COMSTATUS_GYRO) {
+#endif
+        gyro.read();
+        g_x = gyro.data.x;
+        g_y = gyro.data.y;
+        g_z = gyro.data.z;
+            
+        return 1;
+#ifndef NO_I2C
+    }else{
+        printf("IMU::getGryoValues: Restart Program Baro unit I2C link isn't assigned\n");
+    }
+#endif
 }
