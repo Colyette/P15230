@@ -611,6 +611,7 @@ int MasterI2Ccom::launch( double height, double wiggle){
         else if (estHeight < height) { //raise copter
             pkt.header = UP;
             pkt.throttle = 1500; // go up moderately
+            pkt.altitudeHold = height*100; // hopefully high enought for altitude hold
             //sendPPM(&pkt);
             printf("UP\nEst: %f\n",estHeight);
             
@@ -1265,20 +1266,23 @@ int main () {
     nav.closei2cBus();
     return 1;
 }
-#elif defined (DISTANCE_LOCK)
 
+#elif defined (DISTANCE_LOCK)
 void * demoProgramTimeOut(int runFlg) {
     
     return 0;
 }
 
+#define DISTANCE_GAP (60)
+#define DISTANCE_CLOSE (30)
+#define BITSHIFT (10)
 int main () {
-    
+    int32_t tempT,tempP;
     //TODO use PID class to dictate controls for distance locking
     jmPID c_throttle = jmPID();
     jmPID c_pitch = jmPID();
     jmPID c_yaw = jmPID();
-    jmPID c_row = jmPID();
+    jmPID c_roll = jmPID();
     
     int avoidanceDist = 1;
     int diff=0;
@@ -1298,13 +1302,18 @@ int main () {
         //ok to set baro thread for it is calibrated on online
         nav.startBaroThread();
     }
+    //precision
+    c_throttle.bitShift(BITSHIFT);
+    c_pitch.bitShift(BITSHIFT);
+    c_roll.bitShift(BITSHIFT);
+    c_yaw.bitShift(BITSHIFT);
     
     //The tuning stuff
-    c_throttle.kPID(6.3, 2, 0); // Input your P, I, and D constants
-    c_pitch.kPID(6.3, 2, 0); // Input your P, I, and D constants
+    c_throttle.kPID(0.8, 0.01, 0); // Input your P, I, and D constants
+    c_pitch.kPID(0.8, 0.01, 0); // Input your P, I, and D constants
    
-    c_yaw.kPID(6.3, 2, 0); // Input your P, I, and D constants
-    c_row.kPID(6.3, 2, 0); // Input your P, I, and D constants
+    c_yaw.kPID(2, 0, 0); // Input your P, I, and D constants
+    c_roll.kPID(2, 0, 0); // Input your P, I, and D constants
     
     //launch copter
    // nav.launch(1.5, 0.1); //lauch 1.5 meters
@@ -1315,23 +1324,62 @@ int main () {
 //        return -1;
 //    }
     
+    rPkt.throttle = 1600; //HOVER?
+    rPkt.yaw = 1500;
+    rPkt.pitch =1500;
+    rPkt.roll= 1500;
+    printf("MP\tSP\tThr\tPit\tRol\tYaw\n");
     while (demo) { //TODO TIMING MECH TO STOP
         // get sonar readings
         nav.requestSonar( &sPkt);
         // adjust SP from any too close sensings
+        sPkt.sonar3 = 20; //TESTING DUMMY
+        
         //back
-        if ( (sPkt.sonar3 < 100) && (sPkt.sonar3 > 3) ) {
-            // get pid output
-            rPkt.throttle = c_throttle.run(sPkt.sonar3, 100); // Input your P, I, and D constants
-            rPkt.pitch = c_pitch.run(sPkt.sonar3,100);
-            rPkt.yaw = 1000; //default pos?
-            rPkt.roll = 1000; //default pos?
+        if ( (sPkt.sonar3 < DISTANCE_GAP) && (sPkt.sonar3 > 3) ) { //back sonar
+            // get pid output, use constants for orignal offsets for higher convergence
+            
+            tempT = c_throttle.run(sPkt.sonar3, DISTANCE_GAP); // Input your P, I, and D constants
+            rPkt.throttle = (uint16_t) ((int16_t) tempT + (int16_t) rPkt.throttle); //for +/- gains
+            
+            tempP = c_pitch.run(sPkt.sonar3,DISTANCE_GAP);
+            rPkt.pitch = (uint16_t) ((int16_t) tempP + (int16_t) rPkt.pitch); //for +/- gains
+            
+            
+            rPkt.yaw = 1500; //default pos?
+            rPkt.roll = 1500; //default pos?
             // give value to actuators
-            printf("\t\t\t\tSP:%d MP:%d T:%d P:%d\n",sPkt.sonar3, 1, rPkt.throttle, rPkt.pitch);
+            printf("%u\t%u\t%u\t%u\t%u\t%u\n",sPkt.sonar3, DISTANCE_GAP, rPkt.throttle, rPkt.pitch,rPkt.roll,rPkt.yaw);
+            printf("%u\t%u\n",tempT,tempP);
+            //slave deals with overflow...
             nav.sendPPM(&rPkt);
-        } else {
+        }
+//        else if((sPkt.sonar1 < 100) && (sPkt.sonar1 > 3)) { //left sonar
+//            // get pid output, use constants for orignal offsets for higher convergence
+//            rPkt.throttle = c_throttle.run(sPkt.sonar1, 100); // Input your P, I, and D constants
+//            rPkt.pitch = 1000;//c_pitch.run(sPkt.sonar3,100);
+//            rPkt.yaw = 1000; //default pos?
+//            rPkt.roll = c_roll.run(sPkt.sonar1,100); //default pos?
+//            // give value to actuators
+//            printf("\t\t\t\tSP:%d MP:%d T:%d P:%d\n",sPkt.sonar1, 1, rPkt.throttle, rPkt.pitch);
+//            nav.sendPPM(&rPkt);
+//            
+//        } else if((sPkt.sonar2 < 100) && (sPkt.sonar2 > 3)){ //right sonar
+//            // get pid output, use constants for orignal offsets for higher convergence
+//            rPkt.throttle = c_throttle.run(sPkt.sonar2, 100); // Input your P, I, and D constants
+//            rPkt.pitch = 1000;//c_pitch.run(sPkt.sonar3,100);
+//            rPkt.yaw = 1000; //default pos?
+//            rPkt.roll = c_roll.run(sPkt.sonar2,100); //default pos?
+//            // give value to actuators
+//            printf("\t\t\t\tSP:%d MP:%d T:%d P:%d\n",sPkt.sonar2, 1, rPkt.throttle, rPkt.pitch);
+//            nav.sendPPM(&rPkt);
+//        }
+        else {
             printf("Back sonar not in accountable range %dcm\n",sPkt);
         }
+        ::sleep(1);
+        
+        //SOME STUFFS
         
         
         
@@ -1342,5 +1390,139 @@ int main () {
     return 1;
     
 }
-
+#elif defined (DISTANCE_LOCK_2)
+#define BITSHIFT (3)
+int main () {
+    
+    //TODO use PID class to dictate controls for distance locking
+    jmPID c_throttle_r = jmPID();
+    jmPID c_throttle_l = jmPID();
+    jmPID c_throttle_b = jmPID();
+    
+    jmPID c_pitch_r = jmPID();
+    jmPID c_pitch_l = jmPID();
+    jmPID c_pitch_b = jmPID();
+    //jmPID c_yaw = jmPID();
+    jmPID c_roll_r = jmPID();
+    jmPID c_roll_l = jmPID();
+    jmPID c_roll_b = jmPID();
+    
+    
+    int avoidanceDist = 1;
+    int diff=0;
+    
+    int demo=1; // run flg
+    pthread_t timingThread;
+    
+    //dum pkts
+    SonarReqPkt sPkt;
+    ReqPkt rPkt;
+    
+    ///
+    MasterI2Ccom nav = MasterI2Ccom();	//main interface
+    nav.openi2cBus();                   //open i2c device
+    //start baro continous readings
+    if (nav.geti2cComStatus() & COMSTATUS_BARO){
+        //ok to set baro thread for it is calibrated on online
+        nav.startBaroThread();
+    }
+    //Weird precision stuffs
+    c_throttle_r.bitShift(BITSHIFT);
+    c_throttle_l.bitShift(BITSHIFT);
+    c_throttle_b.bitShift(BITSHIFT);
+    
+    c_pitch_r.bitShift(BITSHIFT);
+    c_pitch_l.bitShift(BITSHIFT);
+    c_pitch_b.bitShift(BITSHIFT);
+    
+    c_roll_r.bitShift(BITSHIFT);
+    c_roll_l.bitShift(BITSHIFT);
+    c_roll_b.bitShift(BITSHIFT);
+    
+    
+    //The tuning stuff
+    c_throttle_r.kPID(2, 0, 0); // Input your P, I, and D constants
+    c_throttle_l.kPID(2, 0, 0); // Input your P, I, and D constants
+    c_throttle_b.kPID(2, 0, 0); // Input your P, I, and D constants
+    
+    c_pitch_r.kPID(0.8, 0, 0); // Input your P, I, and D constants
+    c_pitch_l.kPID(0.8, 0, 0); // Input your P, I, and D constants
+    c_pitch_b.kPID(0.8, 0, 0); // Input your P, I, and D constants
+    
+    //c_yaw.kPID(6.3, 2, 0); // Input your P, I, and D constants
+    c_roll_r.kPID(0.8, 0, 0); // Input your P, I, and D constants
+    c_roll_l.kPID(0.8, 0, 0); // Input your P, I, and D constants
+    c_roll_b.kPID(0.8, 0, 0); // Input your P, I, and D constants
+    
+    //launch copter
+    // nav.launch(1.5, 0.1); //lauch 1.5 meters
+    
+    //create timing mech
+    //    if (pthread_create (&timingThread,NULL,demoProgramTimeOut, demo) {
+    //        printf("trouble creating timing thread\nNot runing distance locking demo\n");
+    //        return -1;
+    //    }
+    
+    while (demo) { //TODO TIMING MECH TO STOP
+        // get sonar readings
+        nav.requestSonar( &sPkt);
+        // adjust SP from any too close sensings
+        sPkt.sonar3 = 150; //TESTING DUMMY
+        sPkt.sonar2 = 60;
+        sPkt.sonar1 = 100;
+        //back
+        if ( (sPkt.sonar3 < 100) && (sPkt.sonar3 > 3) ) { //back sonar
+             //not tooo close OR TOO CLOSE
+        } else{
+            //not adjustable
+            sPkt.sonar3 = 100;
+        }
+        
+        if((sPkt.sonar1 < 100) && (sPkt.sonar1 > 3)) { //left sonar
+            //not tooo close OR TOO CLOSE
+            
+        } else {
+            sPkt.sonar1=100;
+        }
+        if((sPkt.sonar2 < 100) && (sPkt.sonar2 > 3)){ //right sonar
+             //not tooo close OR TOO CLOSE
+        }else {
+            sPkt.sonar2 =100;
+        }
+//        
+//        else {
+//            printf("Back sonar not in accountable range %dcm\n",sPkt);
+//        }
+        
+        //SOME STUFFS
+        //throttle
+        //rPkt.throttle = c_throttle_r(sPkt.sonar2, c_throttle_l(sPkt.sonar1 ,c_throttle_b.run(sPkt.sonar3,100) ) );
+        rPkt.throttle = c_throttle_b.run(sPkt.sonar3,100) ;
+        rPkt.throttle = c_throttle_l.run(sPkt.sonar1 ,rPkt.throttle);
+        rPkt.throttle =c_throttle_r.run(sPkt.sonar2, rPkt.throttle);
+        
+        //rPkt.pitch = c_pitch_r(sPkt.sonar2, c_pitch_l(sPkt.sonar1 ,c_pitch_b.run(sPkt.sonar3,100) ) );
+        rPkt.pitch = c_pitch_b.run(sPkt.sonar3,100);
+        rPkt.pitch = c_pitch_l.run(sPkt.sonar1 ,rPkt.pitch);
+        rPkt.pitch = c_pitch_r.run(sPkt.sonar2,rPkt.pitch);
+        
+        //rPkt.roll = c_roll_r(sPkt.sonar2, c_roll_l(sPkt.sonar1 ,c_roll_b.run(sPkt.sonar3,100) ) );
+        rPkt.roll = c_roll_b.run(sPkt.sonar3,100);
+        rPkt.roll = c_roll_l.run(sPkt.sonar1 ,rPkt.roll);
+        rPkt.roll = c_roll_r.run(sPkt.sonar2, rPkt.roll);
+                            
+        
+        rPkt.yaw=1500;////idk
+        
+        printf("\t\t\t\tSB:%u SL:%u SR:%u\n",sPkt.sonar3, sPkt.sonar1, sPkt.sonar2 );
+        printf("\t\t\tT:%u P:%u R:%u Y:%u\n", rPkt.throttle,rPkt.pitch,rPkt.roll,rPkt.yaw);
+        ::sleep(1);
+        
+    }
+    
+    
+    
+    return 1;
+    
+}
 #endif

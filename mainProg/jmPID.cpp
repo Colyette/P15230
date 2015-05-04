@@ -3,6 +3,7 @@
     Created by James L. Mussi, March 17, 2015.
 */
 /**
+ * source: https://github.com/jlm4/jmPID
  * \modified Alyssa Colyette
  * \brief changed timing source for program to use in Linux system
  */
@@ -183,7 +184,7 @@ int32_t jmPID::_pidCalc()
         }
     }
         
-    _pid_OUT = _pid_SUM >> _shift; // rescale to final OutPut Value
+    _pid_OUT = _pid_SUM;// >> _shift; // rescale to final OutPut Value
         
     return _pid_OUT; 
 } // END pidCalc()
