@@ -8,6 +8,9 @@ Use command:
 $make test_grid 
 Builds the map that A* Search for navigation path planning
 
+NOTE: Updated version in mainProg folder. This implementation does not have backtracking if it finds itself into
+a newly discovered corner.
+
 start Folder
 -----
 Add to home directory of the RPi
