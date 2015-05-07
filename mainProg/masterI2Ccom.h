@@ -205,8 +205,8 @@ private:
     //list of sub targets
     std::vector<Node*> subTargetList;
     // saving assumed position in map
-    double cur_x_pos;   //CURRENTLY NOT USED
-    double cur_y_pos;   //CURRENTLY NOT USED
+    double cur_x_pos;
+    double cur_y_pos;
     Node* cur_pos;
     
     /**

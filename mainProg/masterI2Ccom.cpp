@@ -1351,7 +1351,6 @@ int main () {
             // give value to actuators
             printf("%u\t%u\t%u\t%u\t%u\t%u\n",sPkt.sonar3, DISTANCE_GAP, rPkt.throttle, rPkt.pitch,rPkt.roll,rPkt.yaw);
             printf("%u\t%u\n",tempT,tempP);
-            //slave deals with overflow...
             nav.sendPPM(&rPkt);
         }
 //        else if((sPkt.sonar1 < 100) && (sPkt.sonar1 > 3)) { //left sonar
