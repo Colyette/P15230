@@ -18,7 +18,7 @@
 
 #define COMSTATUS_COM_ACC   (0x01)
 #define COMSTATUS_BARO      (0x02)
-#define COMSTATUS_GYRO      (0x03)
+#define COMSTATUS_GYRO      (0x04)
 
 class IMU {
 public:

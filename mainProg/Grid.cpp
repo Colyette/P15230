@@ -313,7 +313,7 @@ std::vector<Node*> Grid::findPath(Node* S, Node* T){
   
 
         }else{
-            printf("Need to backtrack?\n");
+           // printf("Need to backtrack?\n");
             curNode->visited=true;
             curNode = curNode->backward;
         }

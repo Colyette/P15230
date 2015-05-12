@@ -35,7 +35,7 @@
 #define T4_X    (20)
 #define T4_Y    (20)
 
-#define COMSTATUS_TEENSY (0x4)    //flag set mask for teensy communications status
+#define COMSTATUS_TEENSY (0x08)    //flag set mask for teensy communications status
 /**
  * Class for i2c communications with Arudino slaves (PPM signal propeller control outbound and  
  * sonar sensor readings inbound)
